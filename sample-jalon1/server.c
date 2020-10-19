@@ -27,44 +27,39 @@ void echo_server(int sockfd) {
 	}
 }
 
-int handle_bind() {
-	struct addrinfo hints, *result, *rp;
-	int sfd;
-	memset(&hints, 0, sizeof(struct addrinfo));
-	hints.ai_family = AF_UNSPEC;
-	hints.ai_socktype = SOCK_STREAM;
-	hints.ai_flags = AI_PASSIVE;
-	if (getaddrinfo(NULL, SERV_PORT, &hints, &result) != 0) {
-		perror("getaddrinfo()");
-		exit(EXIT_FAILURE);
+int handle_bind(int portnb) {
+	/* Create socket */
+	printf("Creating socket...\n");
+	int server_sock = socket(AF_INET, SOCK_STREAM, 0);
+
+	// create server addr
+	char  * addr_ip = "127.0.0.1";
+	short port = portnb;
+	struct sockaddr_in  server_addr;
+	memset(&server_addr, '\0', sizeof(server_addr));
+	server_addr.sin_family= AF_INET;
+	server_addr.sin_port = htons(port);
+	inet_aton(addr_ip,&(server_addr.sin_addr));
+		
+	// bind to server addr
+	printf("Binding...\n");
+	if( bind(server_sock, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1){
+		perror("Error while binding");
+		return 0;
 	}
-	for (rp = result; rp != NULL; rp = rp->ai_next) {
-		sfd = socket(rp->ai_family, rp->ai_socktype,
-		rp->ai_protocol);
-		if (sfd == -1) {
-			continue;
-		}
-		if (bind(sfd, rp->ai_addr, rp->ai_addrlen) == 0) {
-			break;
-		}
-		close(sfd);
-	}
-	if (rp == NULL) {
-		fprintf(stderr, "Could not bind\n");
-		exit(EXIT_FAILURE);
-	}
-	freeaddrinfo(result);
-	return sfd;
+	return server_sock;
 }
 
-int main() {
+int main(int argc, char * argv[]) {
 	struct sockaddr cli;
 	int sfd, connfd;
 	socklen_t len;
-	sfd = handle_bind();
-	if ((listen(sfd, SOMAXCONN)) != 0) {
-		perror("listen()\n");
-		exit(EXIT_FAILURE);
+	sfd = handle_bind(atoi(argv[1]));
+	// listen
+	printf("Listening...\n");
+	if (listen(sfd, 10) == -1){
+		perror("Error while listening");
+		return 0;
 	}
 	len = sizeof(cli);
 	if ((connfd = accept(sfd, (struct sockaddr*) &cli, &len)) < 0) {
