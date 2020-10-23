@@ -59,6 +59,10 @@ int handle_connect(char address_ip[], int portnb) {
 }
 
 int main(int argc, char * argv[]) {
+	if (argc != 3){
+        perror("Port number and IP adress are missing\n");
+        return 0;
+    }
 	int sfd;
 	sfd = handle_connect(argv[1],atoi(argv[2]));
 	echo_client(sfd);

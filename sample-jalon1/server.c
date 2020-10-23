@@ -30,7 +30,7 @@ void echo_server(int server_sock) {
         enabled = poll(fds,nfds,-1);
 
         if (enabled >0){
-            printf("There is something to do\n");
+            printf("A client is asking for connection\n");
         }
         else{
             printf("There is a problem with poll function: error %i\n",enabled);
@@ -131,12 +131,16 @@ int handle_bind(int portnb) {
 }
 
 int main(int argc, char * argv[]) {
+	if( argc != 2 ){
+    	printf("Missing port number\n");
+    	return 0;
+  	}
 	int sfd;
 	sfd = handle_bind(atoi(argv[1]));
 
 	echo_server(sfd);
 	close(sfd);
-	
+
 	return EXIT_SUCCESS;
 }
 
