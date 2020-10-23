@@ -11,6 +11,36 @@
 
 #include "common.h"
 
+struct list_client_datas{
+	struct client_datas * client;
+	struct list_client_datas * next;
+};
+
+struct client_datas{
+	int fd;
+	int port;
+	char * adress;
+};
+
+struct list_client_datas * first_client=NULL;
+
+void client_insertion(int fd, int port, char * adress){
+  struct client_datas * client = malloc(sizeof(struct client_datas));
+  client->fd = fd;
+  client->port = port;
+  client->adress = adress;
+  if (first_client == NULL) {
+    first_client = malloc(sizeof(*first_client));
+    first_client->client = client;
+    first_client->next = NULL;
+    return;
+  }
+  struct list_client_datas * list = malloc(sizeof(*list));
+  list->client=client;
+  first_client->next=first_client;
+  first_client=list;
+}
+
 void echo_server(int server_sock) {
 
 	/*Init of poll structure */
@@ -30,7 +60,7 @@ void echo_server(int server_sock) {
         enabled = poll(fds,nfds,-1);
 
         if (enabled >0){
-            printf("A client is asking for connection\n");
+            printf("A client wants to communicate\n");
         }
         else{
             printf("There is a problem with poll function: error %i\n",enabled);
@@ -53,6 +83,7 @@ void echo_server(int server_sock) {
                     fds[fd].fd = client_fd;
                     fds[fd].events = POLLIN;
                     printf("Client socket %i accepted and assigned to fd %i\n", client_fd, fd);
+					client_insertion(fds[fd].fd,8081,"127.0.0.1");
                 }
 				else if (fd < nfds){
                     perror("The max number of connections is reached\n");
@@ -71,7 +102,7 @@ void echo_server(int server_sock) {
                 char buffer[MSG_LEN];
                 memset(buffer,0,MSG_LEN);
                 int ret = 0;
-                int tmp = 0;
+                
                 
                 if (-1 == ( ret = read(fds[i].fd,buffer,MSG_LEN))) {
                     perror("Error while reading");
@@ -80,7 +111,14 @@ void echo_server(int server_sock) {
 				if(ret != -1){
         			write(fds[i].fd, buffer, ret);
         			printf("The buffer received by client %i is %s\n", fds[i].fd,buffer);
+
+					if (!strcmp(buffer,"/quit\n")){
+						close(fds[i].fd);
+						printf("Socket %i has terminated its connection\n",i);
+						memset((fds + i),0,sizeof(struct pollfd));
+					}
     			}
+
     			memset(buffer, '\0', MSG_LEN);
             }    
         }
