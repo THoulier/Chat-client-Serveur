@@ -7,41 +7,13 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <poll.h>
+#include "liste_chainee.h"
 
 
 #include "common.h"
 
-struct list_client_datas{
-	struct client_datas * client;
-	struct list_client_datas * next;
-};
 
-struct client_datas{
-	int fd;
-	int port;
-	char * adress;
-};
-
-struct list_client_datas * first_client=NULL;
-
-void client_insertion(int fd, int port, char * adress){
-  struct client_datas * client = malloc(sizeof(struct client_datas));
-  client->fd = fd;
-  client->port = port;
-  client->adress = adress;
-  if (first_client == NULL) {
-    first_client = malloc(sizeof(*first_client));
-    first_client->client = client;
-    first_client->next = NULL;
-    return;
-  }
-  struct list_client_datas * list = malloc(sizeof(*list));
-  list->client=client;
-  first_client->next=first_client;
-  first_client=list;
-}
-
-void echo_server(int server_sock) {
+void echo_server(int server_sock, struct list_client * list) {
 
 	/*Init of poll structure */
 	int nfds = MAXCLI;
@@ -75,6 +47,8 @@ void echo_server(int server_sock) {
                 struct sockaddr_in client_addr;
                 socklen_t size_addr = sizeof(struct sockaddr_in);
                 int client_fd = accept(server_sock,(struct sockaddr*)&client_addr,&size_addr);
+				char * client_ip = inet_ntoa(client_addr.sin_addr);
+				insertion(list,client_fd,client_addr.sin_port,client_ip);
 
                 while(fds[fd].fd != -1 && fd < nfds){
                     fd++;    
@@ -83,7 +57,6 @@ void echo_server(int server_sock) {
                     fds[fd].fd = client_fd;
                     fds[fd].events = POLLIN;
                     printf("Client socket %i accepted and assigned to fd %i\n", client_fd, fd);
-					client_insertion(fds[fd].fd,8081,"127.0.0.1");
                 }
 				else if (fd < nfds){
                     perror("The max number of connections is reached\n");
@@ -112,7 +85,7 @@ void echo_server(int server_sock) {
         			write(fds[i].fd, buffer, ret);
         			printf("The buffer received by client %i is %s\n", fds[i].fd,buffer);
 
-					if (!strcmp(buffer,"/quit\n")){
+					if (!strcmp(buffer,"/quit\n") || ret == 0){
 						close(fds[i].fd);
 						printf("Socket %i has terminated its connection\n",i);
 						memset((fds + i),0,sizeof(struct pollfd));
@@ -122,19 +95,8 @@ void echo_server(int server_sock) {
     			memset(buffer, '\0', MSG_LEN);
             }    
         }
-		/*
-		// Cleaning memory
-		memset(buff, 0, MSG_LEN);
-		// Receiving message
-		if (recv(sockfd, buff, MSG_LEN, 0) <= 0) {
-			break;
-		}
-		printf("Received: %s", buff);
-		// Sending message (ECHO)
-		if (send(sockfd, buff, strlen(buff), 0) <= 0) {
-			break;
-		}
-		printf("Message sent!\n");*/
+		display_list(list);
+
 	}
 }
 
@@ -169,6 +131,8 @@ int handle_bind(int portnb) {
 }
 
 int main(int argc, char * argv[]) {
+	struct list_client * list = initialisation();
+
 	if( argc != 2 ){
     	printf("Missing port number\n");
     	return 0;
@@ -176,7 +140,7 @@ int main(int argc, char * argv[]) {
 	int sfd;
 	sfd = handle_bind(atoi(argv[1]));
 
-	echo_server(sfd);
+	echo_server(sfd,list);
 	close(sfd);
 
 	return EXIT_SUCCESS;

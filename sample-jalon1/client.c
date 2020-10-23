@@ -26,7 +26,7 @@ void echo_client(int sockfd) {
 		if (!strcmp(buff,"/quit\n")){
 			close(sockfd);
 			printf("Socket %i has terminated its connection\n",sockfd);
-			
+			//memset(sockfd,0,sizeof(sockfd));
 		}
 		printf("Message sent!\n");
 		// Cleaning memory
