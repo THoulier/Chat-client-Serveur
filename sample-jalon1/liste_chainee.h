@@ -13,7 +13,7 @@ struct client{
 
 struct list_client * initialisation();
 void insertion(struct list_client * list, int fd, int port, char * adress);
-void suppression(struct list_client * list);
+void suppression(struct client * client, struct list_client * list_principale);
 void display_list(struct list_client * list);
 
 

@@ -39,7 +39,33 @@ void insertion(struct list_client * list, int fd, int port, char * adress){
     list->first = new;
 }
 
-void suppression(struct list_client * list){
+void suppression(struct client * client, struct list_client * list_principale){
+
+	struct client * prev = malloc(sizeof(prev));
+	struct client * next = malloc(sizeof(next));
+	struct list_client * list = list_principale;
+
+	if (list->first==client){
+		list->first=list->first->next;
+	}
+    
+	else{
+		while (list->first != NULL){
+			if (list->first->next == client){
+				prev = list->first;
+                list->first = list->first->next;
+				next = list->first->next;
+				list->first = NULL;
+			}
+			else {
+				list->first=list->first->next;
+			}
+		}
+		prev->next = next;
+	}
+	free(client);
+
+/*
     if(list == NULL){
         exit(EXIT_FAILURE);
     }
@@ -47,7 +73,7 @@ void suppression(struct list_client * list){
         struct client * to_sup = list->first;
         list->first = list->first->next;
         free(to_sup);
-    }
+    }*/
 }
 
 void display_list(struct list_client * list){

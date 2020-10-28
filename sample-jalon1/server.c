@@ -48,6 +48,7 @@ void echo_server(int server_sock, struct list_client * list) {
                 socklen_t size_addr = sizeof(struct sockaddr_in);
                 int client_fd = accept(server_sock,(struct sockaddr*)&client_addr,&size_addr);
 				char * client_ip = inet_ntoa(client_addr.sin_addr);
+
 				insertion(list,client_fd,client_addr.sin_port,client_ip);
 
                 while(fds[fd].fd != -1 && fd < nfds){
@@ -56,9 +57,10 @@ void echo_server(int server_sock, struct list_client * list) {
                 if(fd < nfds){
                     fds[fd].fd = client_fd;
                     fds[fd].events = POLLIN;
-                    printf("Client socket %i accepted and assigned to fd %i\n", client_fd, fd);
+                    printf("[Client %i] connected\n", fd);
+					
                 }
-				else if (fd < nfds){
+				else if (fd > nfds){
                     perror("The max number of connections is reached\n");
                     close(client_fd);
                 }
@@ -67,28 +69,61 @@ void echo_server(int server_sock, struct list_client * list) {
             
             else if ((fds[i].revents & POLLHUP )&& i != 0){
                 close(fds[i].fd);
-                printf("Socket %i has terminated its connection\n",i);
+                printf("[Client %i] has terminated its connection\n",i);
                 memset((fds + i),0,sizeof(struct pollfd));
             }
 
-            else if (fds[i].revents == POLLIN && i != 0){
+            if (fds[i].revents == POLLIN && i != 0){
                 char buffer[MSG_LEN];
                 memset(buffer,0,MSG_LEN);
-                int ret = 0;
+                int ret = read(fds[i].fd,buffer,MSG_LEN);
                 
-                
-                if (-1 == ( ret = read(fds[i].fd,buffer,MSG_LEN))) {
+                if (-1 == ret) {
                     perror("Error while reading");
                     break;
                 }
-				if(ret != -1){
-        			write(fds[i].fd, buffer, ret);
-        			printf("The buffer received by client %i is %s\n", fds[i].fd,buffer);
+				else if (0 == ret){
+					if (list->first->fd == fds[i].fd){
+						suppression(list->first,list);
+						}
+					else {
+						while (list->first != NULL){
+							if (list->first->fd == fds[i].fd){
+								suppression(list->first,list);
+							}
+							else{
+								list->first=list->first->next;
+							}
+						}
+					}
+					close(fds[i].fd);
+					printf("[Client %i] disconnected\n",i);
+					memset((fds + i),0,sizeof(struct pollfd));
+				}
+				else if(ret != -1){
 
-					if (!strcmp(buffer,"/quit\n") || ret == 0){
+					if (!strcmp(buffer,"/quit\n")){
+						if (list->first->fd == fds[i].fd){
+							suppression(list->first,list);
+						}
+						else {
+							while (list->first != NULL){
+								if (list->first->fd == fds[i].fd){
+									suppression(list->first,list);
+								}
+								else{
+									list->first=list->first->next;
+								}
+							}
+						}
+
 						close(fds[i].fd);
-						printf("Socket %i has terminated its connection\n",i);
+						printf("[Client %i] disconnected\n",i);
 						memset((fds + i),0,sizeof(struct pollfd));
+					}
+					else{
+						write(fds[i].fd, buffer, ret);
+        				printf("[Client %i] : %s\n", i,buffer);
 					}
     			}
 
@@ -96,7 +131,6 @@ void echo_server(int server_sock, struct list_client * list) {
             }    
         }
 		display_list(list);
-
 	}
 }
 

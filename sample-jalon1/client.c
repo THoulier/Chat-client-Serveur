@@ -26,14 +26,13 @@ void echo_client(int sockfd) {
             printf("There is a problem with poll function: error %i\n",ret);
             continue;
         }
-
 		if (fds[0].revents & POLLIN){
 			char buff[MSG_LEN];
 			memset(buff, 0, MSG_LEN);
 			if (recv(sockfd, buff, MSG_LEN, 0) <= 0) {
 				break;
 			}
-			printf("Received: %s", buff);
+			printf("[Server]: %s\n", buff);
 		}
 		if (fds[1].revents & POLLIN){
 
@@ -44,7 +43,7 @@ void echo_client(int sockfd) {
 				printf("Error while sending a message");
 				break;
 			}
-			printf("Message sent! ");
+			printf("Message sent!\n");
 
 		}
 	}
@@ -66,10 +65,12 @@ int handle_connect(char address_ip[], int portnb) {
 	inet_aton(addr_ip,&(server_addr.sin_addr));
 
     /* connection au serveur */
+	printf("Connecting to server ...");
     if (connect(server_sock, (struct sockaddr *)&server_addr,sizeof(server_addr)) == -1 ){
         perror("Error connect");
         exit(1);
     }
+	printf("done!\n");
 	return server_sock;
 
 }
