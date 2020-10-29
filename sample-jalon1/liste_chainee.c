@@ -39,32 +39,38 @@ void insertion(struct list_client * list, int fd, int port, char * adress){
     list->first = new;
 }
 
-void suppression(struct client * client, struct list_client * list_principale){
+void suppression(struct client *client, struct list_client *list_principale){
 
 	struct client * prev = malloc(sizeof(prev));
 	struct client * next = malloc(sizeof(next));
-	struct list_client * list = list_principale;
+	struct client * first_client = malloc(sizeof(first_client));
+    first_client = list_principale->first;
 
-	if (list->first==client){
-		list->first=list->first->next;
+	if (first_client == client){
+        if(list_principale->first->next == NULL){
+            list_principale->first = NULL;
+        }
+        else{
+            list_principale->first = list_principale->first->next;
+
+        }
 	}
     
 	else{
-		while (list->first != NULL){
-			if (list->first->next == client){
-				prev = list->first;
-                list->first = list->first->next;
-				next = list->first->next;
-				list->first = NULL;
+		while (first_client != NULL){
+			if (first_client->next == client){
+				prev = first_client;
+                first_client = first_client->next;
+				next = first_client->next;
+				first_client = NULL;
 			}
 			else {
-				list->first=list->first->next;
+				first_client = first_client->next;
 			}
 		}
 		prev->next = next;
 	}
 	free(client);
-
 }
 
 void display_list(struct list_client * list){

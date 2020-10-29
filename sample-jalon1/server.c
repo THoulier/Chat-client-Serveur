@@ -12,14 +12,17 @@
 
 #include "common.h"
 
-void connection_client(int client_nb, int nfds, int server_sock, struct list_client * list, struct pollfd * fds) {
+struct list_client * list_client = NULL;
+
+
+void connection_client(int client_nb, int nfds, int server_sock, struct pollfd * fds) {
 	int fd = 1;
     struct sockaddr_in client_addr;
     socklen_t size_addr = sizeof(struct sockaddr_in);
     int client_fd = accept(server_sock,(struct sockaddr*)&client_addr,&size_addr);
 	char * client_ip = inet_ntoa(client_addr.sin_addr);
 
-	insertion(list,client_fd,client_addr.sin_port,client_ip);
+	insertion(list_client,client_fd,client_addr.sin_port,client_ip);
 
     while(fds[fd].fd != 0 && fd < nfds){
         fd++;    
@@ -36,18 +39,20 @@ void connection_client(int client_nb, int nfds, int server_sock, struct list_cli
     fds[client_nb].revents = 0;
 }
 
-void disconnection_client(int client_nb, int client_fd, struct list_client * list, struct pollfd * fds) {
+void disconnection_client(int client_nb, int client_fd, struct pollfd * fds) {
 	
-	if (list->first->fd == client_fd){
-		suppression(list->first,list);						
+	struct client * first_client = list_client->first;
+	if (first_client->fd == client_fd){
+		suppression(first_client,list_client);
+						
 	}
 	else {
-		while (list->first != NULL){
-			if (list->first->fd == client_fd){
-				suppression(list->first,list);
+		while (first_client != NULL){
+			if (first_client->fd == client_fd){
+				suppression(first_client,list_client);
 			}
 			else{
-				list->first=list->first->next;
+				first_client=first_client->next;
 			}
 		}
 	}
@@ -58,7 +63,7 @@ void disconnection_client(int client_nb, int client_fd, struct list_client * lis
 
 
 
-void echo_server(int server_sock, struct list_client * list) {
+void echo_server(int server_sock) {
 
 	/*Init of poll structure */
 	int nfds = MAXCLI;
@@ -84,7 +89,7 @@ void echo_server(int server_sock, struct list_client * list) {
         for (int i = 0; i < nfds; i++){
 			/* connection treated with poll function */
             if ( fds[i].revents == POLLIN && i == 0){
-				connection_client(i, nfds, server_sock,list, fds);
+				connection_client(i, nfds, server_sock, fds);
             }
             
             else if ((fds[i].revents & POLLHUP )&& i != 0){
@@ -104,12 +109,12 @@ void echo_server(int server_sock, struct list_client * list) {
                     break;
                 }
 				else if (0 == ret){
-					disconnection_client(i, fds[i].fd, list, fds);
+					disconnection_client(i, fds[i].fd, fds);
 				}
 				else if(ret != -1){
 
 					if (!strcmp(buffer,"/quit\n")){
-						disconnection_client(i, fds[i].fd, list, fds);
+						disconnection_client(i, fds[i].fd, fds);
 					}
 					else{
 						write(fds[i].fd, buffer, ret);
@@ -119,7 +124,7 @@ void echo_server(int server_sock, struct list_client * list) {
     			memset(buffer, '\0', MSG_LEN);
             }    
         }
-		display_list(list);
+		display_list(list_client);
 	}
 }
 
@@ -154,7 +159,7 @@ int handle_bind(int portnb) {
 }
 
 int main(int argc, char * argv[]) {
-	struct list_client * list = initialisation();
+	list_client = initialisation();
 
 	if( argc != 2 ){
     	printf("Missing port number\n");
@@ -163,7 +168,7 @@ int main(int argc, char * argv[]) {
 	int sfd;
 	sfd = handle_bind(atoi(argv[1]));
 
-	echo_server(sfd,list);
+	echo_server(sfd);
 	close(sfd);
 
 	return EXIT_SUCCESS;
