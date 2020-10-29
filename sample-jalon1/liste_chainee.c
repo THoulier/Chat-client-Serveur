@@ -65,15 +65,6 @@ void suppression(struct client * client, struct list_client * list_principale){
 	}
 	free(client);
 
-/*
-    if(list == NULL){
-        exit(EXIT_FAILURE);
-    }
-    if(list->first != NULL){
-        struct client * to_sup = list->first;
-        list->first = list->first->next;
-        free(to_sup);
-    }*/
 }
 
 void display_list(struct list_client * list){

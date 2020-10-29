@@ -12,6 +12,51 @@
 
 #include "common.h"
 
+void connection_client(int client_nb, int nfds, int server_sock, struct list_client * list, struct pollfd * fds) {
+	int fd = 1;
+    struct sockaddr_in client_addr;
+    socklen_t size_addr = sizeof(struct sockaddr_in);
+    int client_fd = accept(server_sock,(struct sockaddr*)&client_addr,&size_addr);
+	char * client_ip = inet_ntoa(client_addr.sin_addr);
+
+	insertion(list,client_fd,client_addr.sin_port,client_ip);
+
+    while(fds[fd].fd != 0 && fd < nfds){
+        fd++;    
+	}
+	if(fd < nfds){
+        fds[fd].fd = client_fd;
+        fds[fd].events = POLLIN;
+        printf("[Client %i] connected\n", fd);				
+    }
+	else if (fd > nfds){
+        perror("The max number of connections is reached\n");
+        close(client_fd);
+    }
+    fds[client_nb].revents = 0;
+}
+
+void disconnection_client(int client_nb, int client_fd, struct list_client * list, struct pollfd * fds) {
+	
+	if (list->first->fd == client_fd){
+		suppression(list->first,list);						
+	}
+	else {
+		while (list->first != NULL){
+			if (list->first->fd == client_fd){
+				suppression(list->first,list);
+			}
+			else{
+				list->first=list->first->next;
+			}
+		}
+	}
+	close(client_fd);
+	printf("[Client %i] disconnected\n",client_nb);
+	memset((fds + client_nb),0,sizeof(struct pollfd));
+}
+
+
 
 void echo_server(int server_sock, struct list_client * list) {
 
@@ -20,9 +65,6 @@ void echo_server(int server_sock, struct list_client * list) {
 	struct pollfd fds[nfds];
 	memset(fds,0,nfds*sizeof(struct pollfd));
 
-	for (int p =0; p<nfds;p++){
-		fds[p].fd = -1;
-	}
 	fds[0].fd = server_sock;
 	fds[0].events = POLLIN;
 
@@ -42,38 +84,17 @@ void echo_server(int server_sock, struct list_client * list) {
         for (int i = 0; i < nfds; i++){
 			/* connection treated with poll function */
             if ( fds[i].revents == POLLIN && i == 0){
-
-				int fd = 1;
-                struct sockaddr_in client_addr;
-                socklen_t size_addr = sizeof(struct sockaddr_in);
-                int client_fd = accept(server_sock,(struct sockaddr*)&client_addr,&size_addr);
-				char * client_ip = inet_ntoa(client_addr.sin_addr);
-
-				insertion(list,client_fd,client_addr.sin_port,client_ip);
-
-                while(fds[fd].fd != -1 && fd < nfds){
-                    fd++;    
-				}
-                if(fd < nfds){
-                    fds[fd].fd = client_fd;
-                    fds[fd].events = POLLIN;
-                    printf("[Client %i] connected\n", fd);
-					
-                }
-				else if (fd > nfds){
-                    perror("The max number of connections is reached\n");
-                    close(client_fd);
-                }
-                fds[i].revents = 0;
+				connection_client(i, nfds, server_sock,list, fds);
             }
             
             else if ((fds[i].revents & POLLHUP )&& i != 0){
                 close(fds[i].fd);
-                printf("[Client %i] has terminated its connection\n",i);
+                printf("[Client %i] disconnected\n",i);
                 memset((fds + i),0,sizeof(struct pollfd));
             }
 
             if (fds[i].revents == POLLIN && i != 0){
+			/* interraction with clients */
                 char buffer[MSG_LEN];
                 memset(buffer,0,MSG_LEN);
                 int ret = read(fds[i].fd,buffer,MSG_LEN);
@@ -83,50 +104,18 @@ void echo_server(int server_sock, struct list_client * list) {
                     break;
                 }
 				else if (0 == ret){
-					if (list->first->fd == fds[i].fd){
-						suppression(list->first,list);
-						}
-					else {
-						while (list->first != NULL){
-							if (list->first->fd == fds[i].fd){
-								suppression(list->first,list);
-							}
-							else{
-								list->first=list->first->next;
-							}
-						}
-					}
-					close(fds[i].fd);
-					printf("[Client %i] disconnected\n",i);
-					memset((fds + i),0,sizeof(struct pollfd));
+					disconnection_client(i, fds[i].fd, list, fds);
 				}
 				else if(ret != -1){
 
 					if (!strcmp(buffer,"/quit\n")){
-						if (list->first->fd == fds[i].fd){
-							suppression(list->first,list);
-						}
-						else {
-							while (list->first != NULL){
-								if (list->first->fd == fds[i].fd){
-									suppression(list->first,list);
-								}
-								else{
-									list->first=list->first->next;
-								}
-							}
-						}
-
-						close(fds[i].fd);
-						printf("[Client %i] disconnected\n",i);
-						memset((fds + i),0,sizeof(struct pollfd));
+						disconnection_client(i, fds[i].fd, list, fds);
 					}
 					else{
 						write(fds[i].fd, buffer, ret);
         				printf("[Client %i] : %s\n", i,buffer);
 					}
     			}
-
     			memset(buffer, '\0', MSG_LEN);
             }    
         }
