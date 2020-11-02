@@ -12,6 +12,30 @@
 #include "msg_struct.h"
 
 
+struct message struct_message_preparation(char * buff){
+	struct message msgstruct;
+	char msg_tosend[MSG_LEN];
+
+	memset(msg_tosend, 0, MSG_LEN);
+    memset(&msgstruct, 0, sizeof(struct message));
+
+    if(strncmp(buff, "/nick ", strlen("/nick ")) == 0) {
+        msgstruct.type = NICKNAME_NEW;
+		strcpy(msg_tosend, strchr(buff, ' ') + 1);
+		msgstruct.pld_len = strlen(msg_tosend);
+		strncpy(msgstruct.nick_sender, msg_tosend,strlen(msg_tosend));
+		strncpy(msgstruct.infos, "\0", 1);
+	}
+	else {
+		msgstruct.pld_len = strlen(buff);
+		strncpy(msgstruct.nick_sender, "", 0);
+		msgstruct.type = ECHO_SEND;
+		strncpy(msgstruct.infos, "\0", 1);
+	}
+
+	return(msgstruct);
+}
+
 void echo_client(int sockfd) {
 
 	int ret = -1;
@@ -23,8 +47,12 @@ void echo_client(int sockfd) {
 	fds[1].fd = STDIN_FILENO;
 
 	
+	char buff[MSG_LEN];
+	struct message msgstruct;
 
 	while (1) {
+		memset(buff, 0, MSG_LEN);
+		memset(&msgstruct, 0, sizeof(struct message));
 		ret = poll(fds,2,-1);
         if (ret <=0){
             printf("There is a problem with poll function: error %i\n",ret);
@@ -32,10 +60,7 @@ void echo_client(int sockfd) {
         }
 
 		if (fds[0].revents & POLLIN){
-			char buff[MSG_LEN];
-			struct message msgstruct;
-			memset(buff, 0, MSG_LEN);
-			memset(&msgstruct, 0, sizeof(struct message));
+
 			// Receiving structure
 			if (recv(sockfd, &msgstruct, sizeof(struct message), 0) <= 0) {
 				printf("Error while receiving a structure message");
@@ -49,23 +74,16 @@ void echo_client(int sockfd) {
 			printf("[Server]: %s\n", buff);
 			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 
-			memset(&msgstruct, 0, sizeof(struct message));
-			memset(buff, 0, MSG_LEN);
+			//memset(&msgstruct, 0, sizeof(struct message));
+			//memset(buff, 0, MSG_LEN);
 		}
 
 		if (fds[1].revents & POLLIN){
 
-			char buff[MSG_LEN];
-			memset(buff, 0, MSG_LEN);
-			struct message msgstruct;
-			memset(&msgstruct, 0, sizeof(struct message));
 
 			read(fds[1].fd,buff, MSG_LEN);
 
-			msgstruct.pld_len = strlen(buff);
-			strncpy(msgstruct.nick_sender, "Toto", 4);
-			msgstruct.type = ECHO_SEND;
-			strncpy(msgstruct.infos, "\0", 1);
+			msgstruct = struct_message_preparation(buff);
 
 			if (send(sockfd, &msgstruct, sizeof(msgstruct), 0) <= 0) {
 				printf("Error while sending a message structure");
@@ -77,8 +95,8 @@ void echo_client(int sockfd) {
 			}
 			printf("Message sent!\n");
 
-			memset(&msgstruct, 0, sizeof(struct message));
-			memset(buff, 0, MSG_LEN);
+			//memset(&msgstruct, 0, sizeof(struct message));
+			//memset(buff, 0, MSG_LEN);
 
 		}
 	}

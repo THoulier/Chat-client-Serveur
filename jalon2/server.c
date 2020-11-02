@@ -14,7 +14,7 @@
 #include "msg_struct.h"
 
 
-struct list_client * list_client = NULL;
+struct list_client * list_client;
 
 
 void send_msg(int client_fd, struct message msgstruct, char * buffer){
@@ -22,13 +22,50 @@ void send_msg(int client_fd, struct message msgstruct, char * buffer){
 	write(client_fd, buffer, msgstruct.pld_len);
 }
 
-void connection_client(int client_nb, int nfds, int server_sock, struct pollfd * fds,struct message msgstruct) {
+int treating_messages(struct message msgstruct, char * buff, int client_fd, int client_nb){
+	char msg_tosend[MSG_LEN];
+	struct message msgstruct_tosend;
+
+	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
+	memset(msg_tosend, 0, MSG_LEN);
+
+	switch (msgstruct.type){
+		
+		case NICKNAME_NEW:
+        	sprintf(msg_tosend,"Welcome on the chat %s" ,msgstruct.nick_sender);
+            
+			strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+			strncpy(msgstruct_tosend.infos, "Nickname passed", strlen("Nickname passed"));            
+			msgstruct_tosend.type = NICKNAME_NEW;
+            msgstruct_tosend.pld_len = strlen(msg_tosend);
+		break;
+
+		case ECHO_SEND:
+			strncpy(msg_tosend,buff, strlen(buff));
+			strncpy(msgstruct_tosend.infos, "\0", 1);
+            strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+            msgstruct_tosend.type = ECHO_SEND;
+            msgstruct_tosend.pld_len = strlen(msg_tosend);
+        break;
+		default:
+        break;
+	}
+	printf("[Client %i] : %s\n", client_nb,buff);
+	printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+						
+	send_msg(client_fd,msgstruct_tosend,msg_tosend);
+	return 1;
+
+}
+
+void connection_client(int client_nb, int nfds, int server_sock, struct pollfd * fds) {
 	int fd = 1;
     struct sockaddr_in client_addr;
     socklen_t size_addr = sizeof(struct sockaddr_in);
     int client_fd = accept(server_sock,(struct sockaddr*)&client_addr,&size_addr);
 	char * client_ip = inet_ntoa(client_addr.sin_addr);
-		
+	//printf("%d\n",list_client->first->fd);
+	
 	insertion(list_client,client_fd,client_addr.sin_port,client_ip);
 
     while(fds[fd].fd != 0 && fd < nfds){
@@ -49,7 +86,22 @@ void connection_client(int client_nb, int nfds, int server_sock, struct pollfd *
 }
 
 void disconnection_client(int client_nb, int client_fd, struct pollfd * fds) {
-	suppression(find_client(client_fd,list_client),list_client);
+	
+	struct client * first_client = list_client->first;
+	if (first_client->fd == client_fd){
+		suppression(first_client,list_client);
+						
+	}
+	else {
+		while (first_client != NULL){
+			if (first_client->fd == client_fd){
+				suppression(first_client,list_client);
+			}
+			else{
+				first_client=first_client->next;
+			}
+		}
+	}
 	close(client_fd);
 	printf("[Client %i] disconnected\n",client_nb);
 	memset((fds + client_nb),0,sizeof(struct pollfd));
@@ -68,9 +120,9 @@ void echo_server(int server_sock) {
 	fds[0].events = POLLIN;
 
 	struct message msgstruct;
-
+	char buffer[MSG_LEN];
 	while (1) {
-		char buffer[MSG_LEN];
+		
         memset(buffer,0,MSG_LEN);
 		memset(&msgstruct, 0, sizeof(struct message));
 		/* tests on poll function */
@@ -88,7 +140,7 @@ void echo_server(int server_sock) {
         for (int i = 0; i < nfds; i++){
 			/* connection treated with poll function */
             if ( fds[i].revents == POLLIN && i == 0){
-				connection_client(i, nfds, server_sock, fds, msgstruct);
+				connection_client(i, nfds, server_sock, fds);
             }
             
             else if ((fds[i].revents & POLLHUP )&& i != 0){
@@ -116,16 +168,14 @@ void echo_server(int server_sock) {
 						disconnection_client(i, fds[i].fd, fds);
 					}
 					else{
-
-						send_msg(fds[i].fd, msgstruct, buffer);
-        				printf("[Client %i] : %s\n", i,buffer);
-						printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+						treating_messages(msgstruct,buffer,fds[i].fd, i);
+						//send_msg(fds[i].fd, msgstruct, buffer);
 
 					}
     			}
-    			memset(buffer, '\0', MSG_LEN);
             }    
         }
+		printf("%d\n",list_client->first->fd);
 		display_list(list_client);
 	}
 }

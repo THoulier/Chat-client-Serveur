@@ -124,7 +124,7 @@ void echo_server(int server_sock) {
     			memset(buffer, '\0', MSG_LEN);
             }    
         }
-		display_list(list_client);
+		//display_list(list_client);
 	}
 }
 

@@ -9,7 +9,7 @@
 #include <poll.h>
 #include "liste_chainee.h"
 
-
+/*
 struct client * find_client(int client_fd, struct list_client * list_principal){
     struct client * first_client = list_principal->first;
 	if (first_client->fd == client_fd){
@@ -26,7 +26,7 @@ struct client * find_client(int client_fd, struct list_client * list_principal){
 		}
 	}
     return 0;
-}
+}*/
 
 struct list_client * initialisation(){
     struct list_client * list = malloc(sizeof(list));
@@ -38,7 +38,7 @@ struct list_client * initialisation(){
     client->fd = 0;
     client->port = 0;
     client->adress = NULL;
-    client->nickname = "";
+    //client->nickname = "";
     
     return list;
 }
@@ -51,6 +51,7 @@ void insertion(struct list_client * list, int fd, int port, char * adress){
     new->fd = fd;
     new->port = port;
     new->adress = adress;
+    //new->nickname = "";
 
     new->next = list->first;
     list->first = new;
@@ -61,6 +62,7 @@ void suppression(struct client *client, struct list_client *list_principale){
 	struct client * prev = malloc(sizeof(prev));
 	struct client * next = malloc(sizeof(next));
 	struct client * first_client = malloc(sizeof(first_client));
+    
     first_client = list_principale->first;
 
 	if (first_client == client){
