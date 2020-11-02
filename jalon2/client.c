@@ -38,10 +38,12 @@ void echo_client(int sockfd) {
 			memset(&msgstruct, 0, sizeof(struct message));
 			// Receiving structure
 			if (recv(sockfd, &msgstruct, sizeof(struct message), 0) <= 0) {
+				printf("Error while receiving a structure message");
 				break;
 			}
 			// Receiving message
 			if (recv(sockfd, buff, msgstruct.pld_len, 0) <= 0) {
+				printf("Error while receiving a message");
 				break;
 			}
 			printf("[Server]: %s\n", buff);

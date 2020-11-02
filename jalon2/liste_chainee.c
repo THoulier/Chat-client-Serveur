@@ -10,7 +10,23 @@
 #include "liste_chainee.h"
 
 
-
+struct client * find_client(int client_fd, struct list_client * list_principal){
+    struct client * first_client = list_principal->first;
+	if (first_client->fd == client_fd){
+		return 	first_client;	
+	}
+	else {
+		while (first_client != NULL){
+			if (first_client->fd == client_fd){
+                return 	first_client;
+			}
+			else{
+				first_client=first_client->next;
+			}
+		}
+	}
+    return 0;
+}
 
 struct list_client * initialisation(){
     struct list_client * list = malloc(sizeof(list));
@@ -22,6 +38,7 @@ struct list_client * initialisation(){
     client->fd = 0;
     client->port = 0;
     client->adress = NULL;
+    client->nickname = "";
     
     return list;
 }

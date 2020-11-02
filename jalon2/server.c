@@ -17,22 +17,29 @@
 struct list_client * list_client = NULL;
 
 
-void connection_client(int client_nb, int nfds, int server_sock, struct pollfd * fds) {
+void send_msg(int client_fd, struct message msgstruct, char * buffer){
+	write(client_fd,&msgstruct, sizeof(msgstruct));
+	write(client_fd, buffer, msgstruct.pld_len);
+}
+
+void connection_client(int client_nb, int nfds, int server_sock, struct pollfd * fds,struct message msgstruct) {
 	int fd = 1;
     struct sockaddr_in client_addr;
     socklen_t size_addr = sizeof(struct sockaddr_in);
     int client_fd = accept(server_sock,(struct sockaddr*)&client_addr,&size_addr);
 	char * client_ip = inet_ntoa(client_addr.sin_addr);
-
+		
 	insertion(list_client,client_fd,client_addr.sin_port,client_ip);
 
     while(fds[fd].fd != 0 && fd < nfds){
         fd++;    
 	}
 	if(fd < nfds){
+
         fds[fd].fd = client_fd;
         fds[fd].events = POLLIN;
-        printf("[Client %i] connected\n", fd);				
+        printf("[Client %i] connected\n", fd);
+		
     }
 	else if (fd > nfds){
         perror("The max number of connections is reached\n");
@@ -42,22 +49,7 @@ void connection_client(int client_nb, int nfds, int server_sock, struct pollfd *
 }
 
 void disconnection_client(int client_nb, int client_fd, struct pollfd * fds) {
-	
-	struct client * first_client = list_client->first;
-	if (first_client->fd == client_fd){
-		suppression(first_client,list_client);
-						
-	}
-	else {
-		while (first_client != NULL){
-			if (first_client->fd == client_fd){
-				suppression(first_client,list_client);
-			}
-			else{
-				first_client=first_client->next;
-			}
-		}
-	}
+	suppression(find_client(client_fd,list_client),list_client);
 	close(client_fd);
 	printf("[Client %i] disconnected\n",client_nb);
 	memset((fds + client_nb),0,sizeof(struct pollfd));
@@ -78,6 +70,9 @@ void echo_server(int server_sock) {
 	struct message msgstruct;
 
 	while (1) {
+		char buffer[MSG_LEN];
+        memset(buffer,0,MSG_LEN);
+		memset(&msgstruct, 0, sizeof(struct message));
 		/* tests on poll function */
 		int enabled = 0;
         enabled = poll(fds,nfds,-1);
@@ -93,10 +88,7 @@ void echo_server(int server_sock) {
         for (int i = 0; i < nfds; i++){
 			/* connection treated with poll function */
             if ( fds[i].revents == POLLIN && i == 0){
-				connection_client(i, nfds, server_sock, fds);
-				//char * str = "[server] : please login with /nick <your pseudo>";
-				//printf("%d\n",strlen(str)),
-				//write(fds[i].fd,str, strlen(str));
+				connection_client(i, nfds, server_sock, fds, msgstruct);
             }
             
             else if ((fds[i].revents & POLLHUP )&& i != 0){
@@ -107,9 +99,7 @@ void echo_server(int server_sock) {
 
             if (fds[i].revents == POLLIN && i != 0){
 			/* interraction with clients */
-                char buffer[MSG_LEN];
-                memset(buffer,0,MSG_LEN);
-				memset(&msgstruct, 0, sizeof(struct message));
+
 				int ret_struct = read(fds[i].fd,&msgstruct, sizeof(msgstruct));
                 int ret = read(fds[i].fd,buffer,MSG_LEN);
                 
@@ -126,8 +116,8 @@ void echo_server(int server_sock) {
 						disconnection_client(i, fds[i].fd, fds);
 					}
 					else{
-						write(fds[i].fd,&msgstruct, sizeof(msgstruct));
-						write(fds[i].fd, buffer, ret);
+
+						send_msg(fds[i].fd, msgstruct, buffer);
         				printf("[Client %i] : %s\n", i,buffer);
 						printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 
