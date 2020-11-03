@@ -7,9 +7,15 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <poll.h>
+
 #include "liste_chainee.h"
 
-/*
+
+void update_nickname(struct client * client, char * nickname){
+    strcpy(client->nickname, nickname);
+}
+
+
 struct client * find_client(int client_fd, struct list_client * list_principal){
     struct client * first_client = list_principal->first;
 	if (first_client->fd == client_fd){
@@ -26,7 +32,7 @@ struct client * find_client(int client_fd, struct list_client * list_principal){
 		}
 	}
     return 0;
-}*/
+}
 
 struct list_client * initialisation(){
     struct list_client * list = malloc(sizeof(list));
@@ -38,8 +44,7 @@ struct list_client * initialisation(){
     client->fd = 0;
     client->port = 0;
     client->adress = NULL;
-    //client->nickname = "";
-    
+    strcpy(client->nickname, "");    
     return list;
 }
 
@@ -51,8 +56,7 @@ void insertion(struct list_client * list, int fd, int port, char * adress){
     new->fd = fd;
     new->port = port;
     new->adress = adress;
-    //new->nickname = "";
-
+    strcpy(new->nickname, "");
     new->next = list->first;
     list->first = new;
 }
@@ -119,4 +123,13 @@ void display_list(struct list_client * list){
         current = current->next;
     }
     printf("NULL\n");
+
+    current = list->first;
+    printf("list of client nickname :");
+    while (current != NULL){
+        printf("%s ->",current->nickname);
+        current = current->next;
+    }
+    printf("NULL\n");
+
 }
