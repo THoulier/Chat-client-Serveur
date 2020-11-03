@@ -22,41 +22,6 @@ void send_msg(int client_fd, struct message msgstruct, char * buffer){
 	write(client_fd, buffer, msgstruct.pld_len);
 }
 
-int treating_messages(struct message msgstruct, char * buff, int client_fd, int client_nb){
-	char msg_tosend[MSG_LEN];
-	struct message msgstruct_tosend;
-
-	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
-	memset(msg_tosend, 0, MSG_LEN);
-
-	switch (msgstruct.type){
-		
-		case NICKNAME_NEW:
-        	sprintf(msg_tosend,"Welcome on the chat %s" ,msgstruct.nick_sender);
-            
-			strncpy(msgstruct_tosend.nick_sender, "Server", 6);
-			strncpy(msgstruct_tosend.infos, "Nickname passed", strlen("Nickname passed"));            
-			msgstruct_tosend.type = NICKNAME_NEW;
-            msgstruct_tosend.pld_len = strlen(msg_tosend);
-		break;
-
-		case ECHO_SEND:
-			strncpy(msg_tosend,buff, strlen(buff));
-			strncpy(msgstruct_tosend.infos, "\0", 1);
-            strncpy(msgstruct_tosend.nick_sender, "Server", 6);
-            msgstruct_tosend.type = ECHO_SEND;
-            msgstruct_tosend.pld_len = strlen(msg_tosend);
-        break;
-		default:
-        break;
-	}
-	printf("[Client %i] : %s\n", client_nb,buff);
-	printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
-						
-	send_msg(client_fd,msgstruct_tosend,msg_tosend);
-	return 1;
-
-}
 
 void connection_client(int client_nb, int nfds, int server_sock, struct pollfd * fds) {
 	int fd = 1;
@@ -106,6 +71,48 @@ void disconnection_client(int client_nb, int client_fd, struct pollfd * fds) {
 	printf("[Client %i] disconnected\n",client_nb);
 	memset((fds + client_nb),0,sizeof(struct pollfd));
 }
+
+int treating_messages(struct message msgstruct, char * buff, int client_fd, int client_nb){
+	char msg_tosend[MSG_LEN];
+	struct message msgstruct_tosend;
+
+	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
+	memset(msg_tosend, 0, MSG_LEN);
+
+	switch (msgstruct.type){
+		
+		case NICKNAME_NEW:
+        	sprintf(msg_tosend,"Welcome on the chat %s" ,msgstruct.nick_sender);
+            
+			strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+			strncpy(msgstruct_tosend.infos, "Nickname passed", strlen("Nickname passed"));            
+			msgstruct_tosend.type = NICKNAME_NEW;
+            msgstruct_tosend.pld_len = strlen(msg_tosend);
+		break;
+
+		case ECHO_SEND:
+
+			strncpy(msg_tosend,buff, strlen(buff));
+			strncpy(msgstruct_tosend.infos, "\0", 1);
+            strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+            msgstruct_tosend.type = ECHO_SEND;
+            msgstruct_tosend.pld_len = strlen(msg_tosend);
+			if (!strcmp(buff,"/quit\n")){
+				return 0;
+			}
+        break;
+		default:
+        break;
+	}
+	printf("[Client %i] : %s\n", client_nb,buff);
+	printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+	printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct_tosend.pld_len, msgstruct_tosend.nick_sender, msg_type_str[msgstruct_tosend.type], msgstruct_tosend.infos);
+					
+	send_msg(client_fd,msgstruct_tosend,msg_tosend);
+	return 1;
+
+}
+
 
 
 
@@ -164,18 +171,13 @@ void echo_server(int server_sock) {
 				}
 				else if(ret != -1 && -1 != ret_struct){
 
-					if (!strcmp(buffer,"/quit\n")){
+					if (treating_messages(msgstruct,buffer,fds[i].fd, i) == 0){
 						disconnection_client(i, fds[i].fd, fds);
 					}
-					else{
-						treating_messages(msgstruct,buffer,fds[i].fd, i);
-						//send_msg(fds[i].fd, msgstruct, buffer);
-
-					}
+					
     			}
             }    
         }
-		printf("%d\n",list_client->first->fd);
 		display_list(list_client);
 	}
 }
