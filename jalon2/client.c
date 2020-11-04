@@ -28,17 +28,20 @@ void message_preparation(char * buff, char * name, int sock_fd){
 
 	memset(msg_tosend, 0, MSG_LEN);
     memset(&msgstruct, 0, sizeof(struct message));
-	printf("%s\n",name);
+	//printf("Name : %s\n",name);
+
     if(strncmp(buff, "/nick ", strlen("/nick ")) == 0) {
         msgstruct.type = NICKNAME_NEW;
 		strcpy(msg_tosend, strchr(buff, ' ') + 1);
+		//printf("MSG : %s\n",msg_tosend);
 		msgstruct.pld_len = strlen(msg_tosend);
 		strncpy(msgstruct.nick_sender, name,strlen(name));
 		strncpy(msgstruct.infos, "\0", 1);
-		strncpy(name, msg_tosend,strlen(msg_tosend));
+		strcpy(name, msg_tosend);
+		//printf("Name : %s\n",name);
 	}
 	else {
-		printf("%s\n",name);
+		//printf("%s\n",name);
 		msgstruct.pld_len = strlen(buff);
 		strncpy(msgstruct.nick_sender, name, strlen(name));
 		msgstruct.type = ECHO_SEND;
@@ -59,10 +62,9 @@ void echo_client(int sockfd) {
 	fds[1].events = POLLIN;
 	fds[1].fd = STDIN_FILENO;
 
-	char name[NICK_LEN];
+	char * name = malloc(sizeof(name));
 	char buff[MSG_LEN];
 	struct message msgstruct;
-	memset(name, 0, NICK_LEN);
 	while (1) {
 		
 		memset(buff, 0, MSG_LEN);

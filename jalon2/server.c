@@ -57,6 +57,50 @@ void disconnection_client(int client_nb, int client_fd, struct pollfd * fds) {
 	memset((fds + client_nb),0,sizeof(struct pollfd));
 }
 
+int nickname_validity (char *  nickname, int client_fd){
+	char msg_tosend[MSG_LEN];
+	struct message msgstruct_tosend;
+	struct client * first_client = list_client->first;
+
+	
+
+	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
+	memset(msg_tosend, 0, MSG_LEN);
+
+	if (strlen(nickname) >= NICK_LEN){
+		strcpy(msg_tosend,"Your nickname must have between 1 and 128 characters");
+		strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+		strncpy(msgstruct_tosend.infos, "Nickname error", strlen("Nickname error"));            
+		msgstruct_tosend.type = NICKNAME_NEW;
+        msgstruct_tosend.pld_len = strlen(msg_tosend);	
+		send_msg(client_fd, msgstruct_tosend, msg_tosend);
+		return 1;
+	}
+
+	int exist = 0;
+
+	while (first_client != NULL){
+		if (strcmp(first_client->nickname, nickname) == 0){
+			printf("%d\n",strcmp(first_client->nickname, nickname));
+			exist = 1;
+		}
+		first_client=first_client->next;
+	}
+	
+	printf("%d\n", exist);
+	if (exist == 1){
+		strcpy(msg_tosend,"Your nickname already exists");
+		strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+		strncpy(msgstruct_tosend.infos, "Nickname already exists", strlen("Nickname already exists"));            
+		msgstruct_tosend.type = NICKNAME_NEW;
+		msgstruct_tosend.pld_len = strlen(msg_tosend);
+		send_msg(client_fd, msgstruct_tosend, msg_tosend);
+		return 1;
+	}
+	return 0;
+}
+
+
 int treating_messages(struct message msgstruct, char * buff, int client_fd, int client_nb){
 	char msg_tosend[MSG_LEN];
 	struct message msgstruct_tosend;
@@ -68,20 +112,25 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	switch (msgstruct.type){
 		
 		case NICKNAME_NEW:
-			if (!strcmp(msgstruct.nick_sender,"")){
-				sprintf(msg_tosend,"Welcome on the chat %s" ,buff);
+
+			if (nickname_validity(buff, client_fd) == 1){
+				break;
 			}
 			else {
-				sprintf(msg_tosend,"Your new nickname is %s" ,buff);
-			}
+				if (!strcmp(msgstruct.nick_sender,"")){
+					sprintf(msg_tosend,"Welcome on the chat %s" ,buff);
+				}
+				else {
+					sprintf(msg_tosend,"Your new nickname is %s" ,buff);
+				}
 
-        	//sprintf(msg_tosend,"Welcome on the chat %s" ,msgstruct.nick_sender);
-            update_nickname(current_client, buff);
-			printf("le nom du client est : %s\n", current_client->nickname);
-			strncpy(msgstruct_tosend.nick_sender, "Server", 6);
-			strncpy(msgstruct_tosend.infos, "Nickname passed", strlen("Nickname passed"));            
-			msgstruct_tosend.type = NICKNAME_NEW;
-            msgstruct_tosend.pld_len = strlen(msg_tosend);
+				update_nickname(current_client, buff);
+				printf("le nom du client est : %s\n", current_client->nickname);
+				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+				strncpy(msgstruct_tosend.infos, "Nickname passed", strlen("Nickname passed"));            
+				msgstruct_tosend.type = NICKNAME_NEW;
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+			}
 		break;
 
 		case ECHO_SEND:

@@ -31,7 +31,7 @@ struct client * find_client(int client_fd, struct list_client * list_principal){
 			}
 		}
 	}
-    return 0;
+    return NULL;
 }
 
 struct list_client * initialisation(){
@@ -41,6 +41,7 @@ struct list_client * initialisation(){
     if(list == NULL || client == NULL){
         exit(EXIT_FAILURE);
     }
+    
     client->fd = 0;
     client->port = 0;
     client->adress = NULL;
