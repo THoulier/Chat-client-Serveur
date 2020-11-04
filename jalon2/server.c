@@ -60,8 +60,6 @@ int nickname_validity (char *  nickname, int client_fd){
 	struct message msgstruct_tosend;
 	struct client * first_client = list_client->first;
 
-	
-
 	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
 	memset(msg_tosend, 0, MSG_LEN);
 
@@ -113,7 +111,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 		
 		case NICKNAME_NEW:
 			if (nickname_validity(buff, client_fd) == 1){
-				break;
+				return 1;
 			}
 			else {
 				if (!strcmp(msgstruct.nick_sender,"")){
@@ -179,6 +177,23 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 			msgstruct_tosend.pld_len = strlen(msg_tosend);
 			while (first_client != NULL){
 				if (strcmp(first_client->nickname, msgstruct.nick_sender) != 0){
+					send_msg(first_client->fd,msgstruct_tosend,msg_tosend);
+				}
+				first_client=first_client->next;
+			}
+			printf("[Client %i] : %s\n", client_nb,buff);
+			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+			return 1;
+		break;
+
+		case UNICAST_SEND:
+			msgstruct_tosend.type = UNICAST_SEND;
+			strncpy(msg_tosend,buff, strlen(buff));
+			strncpy(msgstruct_tosend.infos, "\0", 1);
+			strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
+			msgstruct_tosend.pld_len = strlen(msg_tosend);
+			while (first_client != NULL){
+				if (strcmp(first_client->nickname, msgstruct.infos) == 0){
 					send_msg(first_client->fd,msgstruct_tosend,msg_tosend);
 				}
 				first_client=first_client->next;

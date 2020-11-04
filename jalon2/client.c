@@ -25,7 +25,9 @@ void send_msg_to_server(int sock_fd, struct message msgstruct, char * buffer){
 void message_preparation(char * buff, char * name, int sock_fd){
 	struct message msgstruct;
 	char msg_tosend[MSG_LEN];
+	char temporary_msg[MSG_LEN];
 
+	memset(temporary_msg, 0, MSG_LEN);
 	memset(msg_tosend, 0, MSG_LEN);
     memset(&msgstruct, 0, sizeof(struct message));
 	//printf("Name : %s\n",name);
@@ -33,12 +35,12 @@ void message_preparation(char * buff, char * name, int sock_fd){
     if(strncmp(buff, "/nick ", strlen("/nick ")) == 0) {
         msgstruct.type = NICKNAME_NEW;
 		strcpy(msg_tosend, strchr(buff, ' ') + 1);
-		//printf("MSG : %s\n",msg_tosend);
+		printf("MSG : %s\n",msg_tosend);
 		msgstruct.pld_len = strlen(msg_tosend);
 		strcpy(msgstruct.nick_sender, name);
-		strcpy(msgstruct.infos, name);
+		strcpy(msgstruct.infos, msg_tosend);
 		strcpy(name, msg_tosend);
-		//printf("Name : %s\n",name);
+		printf("Name : %s\n",name);
 	}
 	else if(strncmp(buff, "/whois ", strlen("/whois ")) == 0) {
         msgstruct.type = NICKNAME_INFOS;
@@ -60,6 +62,15 @@ void message_preparation(char * buff, char * name, int sock_fd){
         strcpy(msgstruct.nick_sender, name);
         msgstruct.pld_len = strlen(msg_tosend);
         strncpy(msgstruct.infos, "\0", 1);
+    }
+	else if(strncmp(buff, "/msg ", strlen("/msg ")) == 0) {
+        msgstruct.type = UNICAST_SEND;
+		strcpy(temporary_msg, strchr(buff, ' ') + 1);
+        strcpy(msg_tosend, strchr(temporary_msg, ' ') + 1);
+
+		strncpy(msgstruct.infos, temporary_msg, strlen(temporary_msg)-strlen(msg_tosend)-1);
+        msgstruct.pld_len = strlen(msg_tosend);
+        strcpy(msgstruct.nick_sender, name);
     }
 	else {
 		//printf("%s\n",name);
