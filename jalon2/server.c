@@ -103,9 +103,10 @@ int nickname_validity (char *  nickname, int client_fd){
 
 int treating_messages(struct message msgstruct, char * buff, int client_fd, int client_nb){
 	char msg_tosend[MSG_LEN];
+	char * nick_list;
 	struct message msgstruct_tosend;
 	struct client * current_client = find_client(client_fd,list_client);
-
+	struct client * first_client = list_client->first;
 	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
 	memset(msg_tosend, 0, MSG_LEN);
 
@@ -143,6 +144,20 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
             msgstruct_tosend.type = ECHO_SEND;
             msgstruct_tosend.pld_len = strlen(msg_tosend);
 
+        break;
+
+		case NICKNAME_LIST:
+			
+			strcat(msg_tosend, "Online users are : \n");
+			while (first_client != NULL){
+				sprintf(nick_list, "		- %s\n",first_client->nickname);
+				strcat(msg_tosend, nick_list);
+				first_client=first_client->next;
+			}
+			strcpy(msgstruct_tosend.infos, "Users connected");
+            strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+            msgstruct_tosend.type = NICKNAME_LIST;
+            msgstruct_tosend.pld_len = strlen(msg_tosend);
         break;
 		default:
         break;
