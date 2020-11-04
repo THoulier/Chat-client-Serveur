@@ -35,8 +35,8 @@ void message_preparation(char * buff, char * name, int sock_fd){
 		strcpy(msg_tosend, strchr(buff, ' ') + 1);
 		//printf("MSG : %s\n",msg_tosend);
 		msgstruct.pld_len = strlen(msg_tosend);
-		strncpy(msgstruct.nick_sender, name,strlen(name));
-		strncpy(msgstruct.infos, "\0", 1);
+		strcpy(msgstruct.nick_sender, name);
+		strcpy(msgstruct.infos, name);
 		strcpy(name, msg_tosend);
 		//printf("Name : %s\n",name);
 	}
@@ -50,9 +50,16 @@ void message_preparation(char * buff, char * name, int sock_fd){
 	else if(strncmp(buff, "/who", strlen("/who")) == 0) {
         msgstruct.type = NICKNAME_LIST;
         strcpy(msgstruct.nick_sender, name);
-		strcpy(msg_tosend, "a");
+		strcpy(msg_tosend, "\0");
         msgstruct.pld_len = 1;
 		strncpy(msgstruct.infos, "\0", 1);
+    }
+	else if(strncmp(buff, "/msgall ", strlen("/msgall ")) == 0) {
+        msgstruct.type = BROADCAST_SEND;
+        strcpy(msg_tosend, strchr(buff, ' ') + 1);
+        strcpy(msgstruct.nick_sender, name);
+        msgstruct.pld_len = strlen(msg_tosend);
+        strncpy(msgstruct.infos, "\0", 1);
     }
 	else {
 		//printf("%s\n",name);
