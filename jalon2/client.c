@@ -40,6 +40,13 @@ void message_preparation(char * buff, char * name, int sock_fd){
 		strcpy(name, msg_tosend);
 		//printf("Name : %s\n",name);
 	}
+	else if(strncmp(buff, "/whois ", strlen("/whois ")) == 0) {
+        msgstruct.type = NICKNAME_INFOS;
+        strcpy(msg_tosend, strchr(buff, ' ') + 1);
+        strcpy(msgstruct.nick_sender, name);
+        msgstruct.pld_len = strlen(msg_tosend);
+        strcpy(msgstruct.infos, msg_tosend);
+    }
 	else if(strncmp(buff, "/who", strlen("/who")) == 0) {
         msgstruct.type = NICKNAME_LIST;
         strcpy(msgstruct.nick_sender, name);

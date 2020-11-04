@@ -14,8 +14,6 @@
 #include "msg_struct.h"
 
 
-//struct list_client * list_client;
-
 
 void send_msg(int client_fd, struct message msgstruct, char * buffer){
 	write(client_fd,&msgstruct, sizeof(msgstruct));
@@ -103,7 +101,8 @@ int nickname_validity (char *  nickname, int client_fd){
 
 int treating_messages(struct message msgstruct, char * buff, int client_fd, int client_nb){
 	char msg_tosend[MSG_LEN];
-	char * nick_list;
+	char * nick_list = malloc(sizeof(nick_list));
+
 	struct message msgstruct_tosend;
 	struct client * current_client = find_client(client_fd,list_client);
 	struct client * first_client = list_client->first;
@@ -113,7 +112,6 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	switch (msgstruct.type){
 		
 		case NICKNAME_NEW:
-
 			if (nickname_validity(buff, client_fd) == 1){
 				break;
 			}
@@ -147,7 +145,6 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
         break;
 
 		case NICKNAME_LIST:
-			
 			strcat(msg_tosend, "Online users are : \n");
 			while (first_client != NULL){
 				sprintf(nick_list, "		- %s\n",first_client->nickname);
@@ -159,6 +156,21 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
             msgstruct_tosend.type = NICKNAME_LIST;
             msgstruct_tosend.pld_len = strlen(msg_tosend);
         break;
+
+		case NICKNAME_INFOS:
+			while (first_client != NULL){
+				if (strcmp(first_client->nickname, buff) == 0){
+					sprintf(msg_tosend, "%s connected since ..., with IP adress %s and port number %d\n",first_client->nickname, first_client->adress, first_client->port);
+					sprintf(msgstruct_tosend.infos, "informations about %s\n", first_client->nickname);
+				}
+				first_client=first_client->next;
+			}
+			
+            sprintf(msgstruct_tosend.nick_sender, "Server");
+            msgstruct_tosend.type = NICKNAME_INFOS;
+            msgstruct_tosend.pld_len = strlen(msg_tosend);
+        break;
+
 		default:
         break;
 	}
