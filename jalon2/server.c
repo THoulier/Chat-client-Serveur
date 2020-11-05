@@ -7,9 +7,10 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <poll.h>
+#include <ctype.h>
+
+
 #include "liste_chainee.h"
-
-
 #include "common.h"
 #include "msg_struct.h"
 
@@ -71,6 +72,18 @@ int nickname_validity (char *  nickname, int client_fd){
         msgstruct_tosend.pld_len = strlen(msg_tosend);	
 		send_msg(client_fd, msgstruct_tosend, msg_tosend);
 		return 1;
+	}
+
+	for (int i = 0; i<strlen(nickname); i++){
+		if (isalpha(nickname[i]) == 0){
+			strcpy(msg_tosend,"Your nickname must not contained special characters nor spaces");
+			strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+			strncpy(msgstruct_tosend.infos, "Nickname error", strlen("Nickname error"));            
+			msgstruct_tosend.type = NICKNAME_NEW;
+			msgstruct_tosend.pld_len = strlen(msg_tosend);	
+			send_msg(client_fd, msgstruct_tosend, msg_tosend);
+			return 1;
+		}
 	}
 
 	int exist = 0;
