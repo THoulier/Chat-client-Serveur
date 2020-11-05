@@ -67,7 +67,7 @@ int nickname_validity (char *  nickname, int client_fd){
 	if (strlen(nickname) >= NICK_LEN){
 		strcpy(msg_tosend,"Your nickname must have between 1 and 128 characters");
 		strncpy(msgstruct_tosend.nick_sender, "Server", 6);
-		strncpy(msgstruct_tosend.infos, "Nickname error", strlen("Nickname error"));            
+		strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));            
 		msgstruct_tosend.type = NICKNAME_NEW;
         msgstruct_tosend.pld_len = strlen(msg_tosend);	
 		send_msg(client_fd, msgstruct_tosend, msg_tosend);
@@ -78,7 +78,7 @@ int nickname_validity (char *  nickname, int client_fd){
 		if (isalpha(nickname[i]) == 0){
 			strcpy(msg_tosend,"Your nickname must not contained special characters nor spaces");
 			strncpy(msgstruct_tosend.nick_sender, "Server", 6);
-			strncpy(msgstruct_tosend.infos, "Nickname error", strlen("Nickname error"));            
+			strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));            
 			msgstruct_tosend.type = NICKNAME_NEW;
 			msgstruct_tosend.pld_len = strlen(msg_tosend);	
 			send_msg(client_fd, msgstruct_tosend, msg_tosend);
@@ -100,7 +100,7 @@ int nickname_validity (char *  nickname, int client_fd){
 	if (exist == 1){
 		strcpy(msg_tosend,"Your nickname already exists");
 		strncpy(msgstruct_tosend.nick_sender, "Server", 6);
-		strncpy(msgstruct_tosend.infos, "Nickname already exists", strlen("Nickname already exists"));            
+		strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));            
 		msgstruct_tosend.type = NICKNAME_NEW;
 		msgstruct_tosend.pld_len = strlen(msg_tosend);
 		send_msg(client_fd, msgstruct_tosend, msg_tosend);
@@ -117,7 +117,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	struct message msgstruct_tosend;
 	struct client * current_client = find_client(client_fd,list_client);
 	struct client * first_client = list_client->first;
-	struct client * client_nick = find_client_nickname(buff, list_client);
+	struct client * client_nick = find_client_nickname(msgstruct.infos, list_client);
 
 	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
 	memset(msg_tosend, 0, MSG_LEN);
@@ -125,7 +125,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	switch (msgstruct.type){
 		
 		case NICKNAME_NEW:
-			if (nickname_validity(buff, client_fd) == 1){
+			if (nickname_validity(msgstruct.infos, client_fd) == 1){
 				return 1;
 			}
 			else {
@@ -136,10 +136,10 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 					sprintf(msg_tosend,"Your new nickname is %s" ,buff);
 				}
 
-				update_nickname(current_client, buff);
+				update_nickname(current_client, msgstruct.infos);
 				printf("le nom du client est : %s\n", current_client->nickname);
 				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
-				strncpy(msgstruct_tosend.infos, "Nickname passed", strlen("Nickname passed"));            
+				strncpy(msgstruct_tosend.infos, msgstruct.infos, strlen(msgstruct.infos));            
 				msgstruct_tosend.type = NICKNAME_NEW;
 				msgstruct_tosend.pld_len = strlen(msg_tosend);
 			}
@@ -226,7 +226,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 			
 			if (client_nick == NULL){
 				msgstruct_tosend.type = UNICAST_SEND;
-				sprintf(msg_tosend, "User %s does not exist", buff);
+				sprintf(msg_tosend, "User %s does not exist", msgstruct.infos);
 				strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));
 				strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
 				msgstruct_tosend.pld_len = strlen(msg_tosend);

@@ -30,18 +30,13 @@ void message_preparation(char * buff, char * name, int sock_fd){
 	memset(temporary_msg, 0, MSG_LEN);
 	memset(msg_tosend, 0, MSG_LEN);
     memset(&msgstruct, 0, sizeof(struct message));
-	//printf("Name : %s\n",name);
 
     if(strncmp(buff, "/nick ", strlen("/nick ")) == 0) {
         msgstruct.type = NICKNAME_NEW;
 		strcpy(msg_tosend, strchr(buff, ' ') + 1);
-		printf("MSG : %s\n",msg_tosend);
 		msgstruct.pld_len = strlen(msg_tosend);
-		strcpy(msgstruct.nick_sender, name);
+		sprintf(msgstruct.nick_sender, "%s", name);
 		strcpy(msgstruct.infos, msg_tosend);
-		//strcpy(name, msg_tosend);
-		sprintf(name, "%s", msg_tosend);
-		printf("Name : %s\n",name);
 	}
 	else if(strncmp(buff, "/whois ", strlen("/whois ")) == 0) {
         msgstruct.type = NICKNAME_INFOS;
@@ -120,6 +115,12 @@ void echo_client(int sockfd) {
 				printf("Error while receiving a message\n");
 				break;
 			}
+
+			if(msgstruct.type == NICKNAME_NEW && strcmp(msgstruct.infos,"Error\0") != 0){
+				strcpy(name,msgstruct.infos);
+				printf("%s\n",name);
+			} 
+
 			printf("[Server]: %s\n", buff);
 			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 

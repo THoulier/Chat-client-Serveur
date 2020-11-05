@@ -18,12 +18,12 @@ void update_nickname(struct client * client, char * nickname){
 
 struct client * find_client_nickname(char * nickname, struct list_client * list_principal){
     struct client * first_client = list_principal->first;
-	if (first_client->nickname == nickname){
+	if (strcmp(first_client->nickname,nickname) == 0){
 		return 	first_client;	
 	}
 	else {
 		while (first_client != NULL){
-			if (first_client->nickname == nickname){
+			if (strcmp(first_client->nickname,nickname) == 0){
                 return 	first_client;
 			}
 			else{
