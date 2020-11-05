@@ -7,12 +7,31 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <poll.h>
+#include <time.h>
 
 #include "liste_chainee.h"
 
 
 void update_nickname(struct client * client, char * nickname){
     strcpy(client->nickname, nickname);
+}
+
+struct client * find_client_nickname(char * nickname, struct list_client * list_principal){
+    struct client * first_client = list_principal->first;
+	if (first_client->nickname == nickname){
+		return 	first_client;	
+	}
+	else {
+		while (first_client != NULL){
+			if (first_client->nickname == nickname){
+                return 	first_client;
+			}
+			else{
+				first_client=first_client->next;
+			}
+		}
+	}
+    return NULL;
 }
 
 
@@ -45,7 +64,8 @@ struct list_client * initialisation(){
     client->fd = 0;
     client->port = 0;
     client->adress = NULL;
-    strcpy(client->nickname, "");    
+    strcpy(client->nickname, "");  
+    //strcpy(client->connection_time, "");  
     return list;
 }
 
@@ -54,6 +74,9 @@ void insertion(struct list_client * list, int fd, int port, char * adress){
     if(list == NULL || new == NULL){
         exit(EXIT_FAILURE);
     }
+    //time_t current_time = time(NULL);
+    //sprintf(new->connection_time,"%s",asctime(localtime(&current_time)));
+    //printf("%s\n",new->connection_time);
     new->fd = fd;
     new->port = port;
     new->adress = adress;
@@ -132,5 +155,13 @@ void display_list(struct list_client * list){
         current = current->next;
     }
     printf("NULL\n");
+/*
+    current = list->first;
+    printf("list of client time :");
+    while (current != NULL){
+        printf("%s ->",current->connection_time);
+        current = current->next;
+    }
+    printf("NULL\n");*/
 
 }

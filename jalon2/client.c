@@ -39,7 +39,8 @@ void message_preparation(char * buff, char * name, int sock_fd){
 		msgstruct.pld_len = strlen(msg_tosend);
 		strcpy(msgstruct.nick_sender, name);
 		strcpy(msgstruct.infos, msg_tosend);
-		strcpy(name, msg_tosend);
+		//strcpy(name, msg_tosend);
+		sprintf(name, "%s", msg_tosend);
 		printf("Name : %s\n",name);
 	}
 	else if(strncmp(buff, "/whois ", strlen("/whois ")) == 0) {

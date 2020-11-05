@@ -12,6 +12,7 @@ struct client{
 	char * adress;
 	char nickname[MSG_LEN];
     struct client * next;
+	//char connection_time[MSG_LEN];
 };
 
 
@@ -23,3 +24,4 @@ void display_list(struct list_client * list);
 struct client * find_client(int client_fd, struct list_client * list_principal);
 void update_nickname(struct client * client, char nickname[MSG_LEN]);
 
+struct client * find_client_nickname(char * nickname, struct list_client * list_principal);

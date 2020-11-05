@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <poll.h>
 #include <ctype.h>
-
+#include <time.h>
 
 #include "liste_chainee.h"
 #include "common.h"
@@ -117,6 +117,8 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	struct message msgstruct_tosend;
 	struct client * current_client = find_client(client_fd,list_client);
 	struct client * first_client = list_client->first;
+	struct client * client_nick = find_client_nickname(buff, list_client);
+
 	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
 	memset(msg_tosend, 0, MSG_LEN);
 
@@ -169,10 +171,30 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
         break;
 
 		case NICKNAME_INFOS:
+			/*
+			if (strcmp("", buff) ==  0){
+				strcpy(msg_tosend,"Please respect /whois <nickname>");
+				sprintf(msgstruct_tosend.nick_sender, "Server");
+            	msgstruct_tosend.type = NICKNAME_INFOS;
+            	msgstruct_tosend.pld_len = strlen(msg_tosend);
+				strcpy(msgstruct_tosend.infos, "Error");
+				send_msg(client_fd,msgstruct_tosend,msg_tosend);
+				return 1;
+			}
+			
+			if (){
+				sprintf(msg_tosend, "User %s does not exist", buff);
+				sprintf(msgstruct_tosend.nick_sender, "Server");
+				strcpy(msgstruct_tosend.infos, "Error");
+				msgstruct_tosend.type = NICKNAME_INFOS;
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+				return 1;
+			}*/
+
 			while (first_client != NULL){
 				if (strcmp(first_client->nickname, buff) == 0){
 					sprintf(msg_tosend, "%s connected since ..., with IP adress %s and port number %d\n",first_client->nickname, first_client->adress, first_client->port);
-					sprintf(msgstruct_tosend.infos, "informations about %s\n", first_client->nickname);
+					sprintf(msgstruct_tosend.infos, "informations about %s", first_client->nickname);
 				}
 				first_client=first_client->next;
 			}
@@ -200,20 +222,32 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 		break;
 
 		case UNICAST_SEND:
-			msgstruct_tosend.type = UNICAST_SEND;
-			strncpy(msg_tosend,buff, strlen(buff));
-			strncpy(msgstruct_tosend.infos, "\0", 1);
-			strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
-			msgstruct_tosend.pld_len = strlen(msg_tosend);
-			while (first_client != NULL){
-				if (strcmp(first_client->nickname, msgstruct.infos) == 0){
-					send_msg(first_client->fd,msgstruct_tosend,msg_tosend);
+
+			
+			if (client_nick == NULL){
+				msgstruct_tosend.type = UNICAST_SEND;
+				sprintf(msg_tosend, "User %s does not exist", buff);
+				strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));
+				strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+			}
+			else{
+				msgstruct_tosend.type = UNICAST_SEND;
+				strncpy(msg_tosend,buff, strlen(buff));
+				strncpy(msgstruct_tosend.infos, "\0", 1);
+				strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+				while (first_client != NULL){
+					if (strcmp(first_client->nickname, msgstruct.infos) == 0){
+						send_msg(first_client->fd,msgstruct_tosend,msg_tosend);
+					}
+					first_client=first_client->next;
 				}
-				first_client=first_client->next;
+				return 1;
 			}
 			printf("[Client %i] : %s\n", client_nb,buff);
 			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
-			return 1;
+			
 		break;
 
 		default:
