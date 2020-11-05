@@ -118,11 +118,11 @@ void echo_client(int sockfd) {
 
 			if(msgstruct.type == NICKNAME_NEW && strcmp(msgstruct.infos,"Error\0") != 0){
 				strcpy(name,msgstruct.infos);
-				printf("%s\n",name);
+				//printf("%s\n",name);
 			} 
 
-			printf("[Server]: %s\n", buff);
-			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+			printf("%s\n", buff);
+			//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 
 		}
 
