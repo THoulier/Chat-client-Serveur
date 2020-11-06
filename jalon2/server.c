@@ -149,7 +149,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 			if (!strcmp(buff,"/quit")){
 				return 0;
 			}
-			strncpy(msg_tosend,buff, strlen(buff));
+			sprintf(msg_tosend,"[%s] : %s", msgstruct.nick_sender, buff);
 			strncpy(msgstruct_tosend.infos, "\0", 1);
             strncpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender, strlen(msgstruct.nick_sender));
             msgstruct_tosend.type = ECHO_SEND;
