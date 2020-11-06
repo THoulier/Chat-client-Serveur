@@ -59,10 +59,12 @@ void disconnection_client(int client_nb, int client_fd, struct pollfd * fds) {
 int nickname_validity (char *  nickname, int client_fd){
 	char msg_tosend[MSG_LEN];
 	struct message msgstruct_tosend;
-	struct client * first_client = list_client->first;
+	struct client * first_client = malloc(sizeof(*first_client));
 
 	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
 	memset(msg_tosend, 0, MSG_LEN);
+
+	first_client = list_client->first;
 
 	if (strlen(nickname) >= NICK_LEN){
 		strcpy(msg_tosend,"Your nickname must have between 1 and 128 characters");
@@ -115,12 +117,16 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	char * nick_list = malloc(sizeof(nick_list));
 
 	struct message msgstruct_tosend;
-	struct client * current_client = find_client(client_fd,list_client);
-	struct client * first_client = list_client->first;
-	struct client * client_nick = find_client_nickname(msgstruct.infos, list_client);
+	struct client * current_client = malloc(sizeof(*current_client));
+	struct client * first_client = malloc(sizeof(*first_client));
+	struct client * client_nick = malloc(sizeof(*client_nick));
 
 	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
 	memset(msg_tosend, 0, MSG_LEN);
+
+	current_client = find_client(client_fd,list_client);
+	first_client = list_client->first;
+	client_nick = find_client_nickname(msgstruct.infos, list_client);
 
 	switch (msgstruct.type){
 		
@@ -181,19 +187,26 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				send_msg(client_fd,msgstruct_tosend,msg_tosend);
 				return 1;
 			}
-			
-			if (){
+			*/
+			if (client_nick == NULL){
 				sprintf(msg_tosend, "User %s does not exist", buff);
 				sprintf(msgstruct_tosend.nick_sender, "Server");
 				strcpy(msgstruct_tosend.infos, "Error");
 				msgstruct_tosend.type = NICKNAME_INFOS;
 				msgstruct_tosend.pld_len = strlen(msg_tosend);
-				return 1;
-			}*/
+			}
+			else{
+				sprintf(msg_tosend, "%s connected since %s, with IP adress %s and port number %d\n",client_nick->nickname, client_nick->connection_time, client_nick->adress, client_nick->port);
+				sprintf(msgstruct_tosend.infos, "informations about %s", client_nick->nickname);
+				sprintf(msgstruct_tosend.nick_sender, "Server");
+				msgstruct_tosend.type = NICKNAME_INFOS;
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+			}
 
+			/*
 			while (first_client != NULL){
 				if (strcmp(first_client->nickname, buff) == 0){
-					sprintf(msg_tosend, "%s connected since ..., with IP adress %s and port number %d\n",first_client->nickname, first_client->adress, first_client->port);
+					sprintf(msg_tosend, "%s connected since %s, with IP adress %s and port number %d\n",first_client->nickname, first_client->connection_time, first_client->adress, first_client->port);
 					sprintf(msgstruct_tosend.infos, "informations about %s", first_client->nickname);
 				}
 				first_client=first_client->next;
@@ -202,6 +215,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
             sprintf(msgstruct_tosend.nick_sender, "Server");
             msgstruct_tosend.type = NICKNAME_INFOS;
             msgstruct_tosend.pld_len = strlen(msg_tosend);
+			*/
         break;
 
 		case BROADCAST_SEND:

@@ -17,7 +17,8 @@ void update_nickname(struct client * client, char * nickname){
 }
 
 struct client * find_client_nickname(char * nickname, struct list_client * list_principal){
-    struct client * first_client = list_principal->first;
+    struct client * first_client = malloc(sizeof(*first_client));
+    first_client = list_principal->first;
 	if (strcmp(first_client->nickname,nickname) == 0){
 		return 	first_client;	
 	}
@@ -36,7 +37,8 @@ struct client * find_client_nickname(char * nickname, struct list_client * list_
 
 
 struct client * find_client(int client_fd, struct list_client * list_principal){
-    struct client * first_client = list_principal->first;
+    struct client * first_client = malloc(sizeof(*first_client));
+    first_client = list_principal->first;
 	if (first_client->fd == client_fd){
 		return 	first_client;	
 	}
@@ -54,8 +56,8 @@ struct client * find_client(int client_fd, struct list_client * list_principal){
 }
 
 struct list_client * initialisation(){
-    struct list_client * list = malloc(sizeof(list));
-    struct client * client = malloc(sizeof(client));
+    struct list_client * list = malloc(sizeof(*list));
+    struct client * client = malloc(sizeof(*client));
 
     if(list == NULL || client == NULL){
         exit(EXIT_FAILURE);
@@ -64,18 +66,23 @@ struct list_client * initialisation(){
     client->fd = 0;
     client->port = 0;
     client->adress = NULL;
+    client->connection_time = NULL;
     strcpy(client->nickname, "");  
-    //strcpy(client->connection_time, "");  
     return list;
 }
 
 void insertion(struct list_client * list, int fd, int port, char * adress){
-    struct client * new = malloc(sizeof(new));
+    struct client * new = malloc(sizeof(*new));
+    struct tm *tmp = malloc(sizeof(*tmp));
+    char * outstr = malloc(sizeof(*outstr));
     if(list == NULL || new == NULL){
         exit(EXIT_FAILURE);
     }
-    //time_t current_time = time(NULL);
-    //sprintf(new->connection_time,"%s",asctime(localtime(&current_time)));
+    time_t current_time = time(NULL);
+    tmp = localtime(&current_time);
+    strftime(outstr, 200, "%c", tmp);
+    //new->connection_time = ctime(&current_time);
+    new->connection_time = outstr;
     //printf("%s\n",new->connection_time);
     new->fd = fd;
     new->port = port;
@@ -87,9 +94,9 @@ void insertion(struct list_client * list, int fd, int port, char * adress){
 
 void suppression(struct client *client, struct list_client *list_principale){
 
-	struct client * prev = malloc(sizeof(prev));
-	struct client * next = malloc(sizeof(next));
-	struct client * first_client = malloc(sizeof(first_client));
+	struct client * prev = malloc(sizeof(*prev));
+	struct client * next = malloc(sizeof(*next));
+	struct client * first_client = malloc(sizeof(*first_client));
     
     first_client = list_principale->first;
 
@@ -124,7 +131,8 @@ void display_list(struct list_client * list){
     if (list == NULL){
         exit(EXIT_FAILURE);
     }
-    struct client * current = list->first;
+    struct client * current = malloc(sizeof(*current));
+    current = list->first;
     printf("list of client fd :");
     while (current != NULL){
         printf("%d ->",current->fd);
@@ -155,13 +163,13 @@ void display_list(struct list_client * list){
         current = current->next;
     }
     printf("NULL\n");
-/*
+
     current = list->first;
     printf("list of client time :");
     while (current != NULL){
         printf("%s ->",current->connection_time);
         current = current->next;
     }
-    printf("NULL\n");*/
+    printf("NULL\n");
 
 }

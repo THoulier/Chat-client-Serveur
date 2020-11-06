@@ -12,7 +12,7 @@ struct client{
 	char * adress;
 	char nickname[MSG_LEN];
     struct client * next;
-	//char connection_time[MSG_LEN];
+	char * connection_time;
 };
 
 
