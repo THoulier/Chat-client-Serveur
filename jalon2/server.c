@@ -23,12 +23,12 @@ void send_msg(int client_fd, struct message msgstruct, char * buffer){
 
 
 void connection_client(int client_nb, int nfds, int server_sock, struct pollfd * fds) {
+	/* treats the connection of a client */
 	int fd = 1;
     struct sockaddr_in client_addr;
     socklen_t size_addr = sizeof(struct sockaddr_in);
     int client_fd = accept(server_sock,(struct sockaddr*)&client_addr,&size_addr);
 	char * client_ip = inet_ntoa(client_addr.sin_addr);
-	//printf("%d\n",list_client->first->fd);
 	
 	insertion(list_client,client_fd,client_addr.sin_port,client_ip);
 
@@ -50,13 +50,15 @@ void connection_client(int client_nb, int nfds, int server_sock, struct pollfd *
 }
 
 void disconnection_client(int client_nb, int client_fd, struct pollfd * fds) {
-	suppression(find_client(client_fd,list_client),list_client);
+	/*treats the disconnection of a client */
+	suppression(find_client(client_fd,list_client),list_client); //remove the client from the list
 	close(client_fd);
 	printf("[Client %i] disconnected\n",client_nb);
 	memset((fds + client_nb),0,sizeof(struct pollfd));
 }
 
 int nickname_validity (char *  nickname, int client_fd){
+	/* verify the nickname validity */
 	char msg_tosend[MSG_LEN];
 	struct message msgstruct_tosend;
 	struct client * first_client = malloc(sizeof(*first_client));
@@ -66,7 +68,7 @@ int nickname_validity (char *  nickname, int client_fd){
 
 	first_client = list_client->first;
 
-	if (strlen(nickname) >= NICK_LEN){
+	if (strlen(nickname) > NICK_LEN){
 		strcpy(msg_tosend,"Your nickname must have between 1 and 128 characters");
 		strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 		strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));            
@@ -113,6 +115,7 @@ int nickname_validity (char *  nickname, int client_fd){
 
 
 int treating_messages(struct message msgstruct, char * buff, int client_fd, int client_nb){
+	/* treating the received msg and sending the good response */
 	char msg_tosend[MSG_LEN];
 	char * nick_list = malloc(sizeof(nick_list));
 
@@ -139,11 +142,11 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 					sprintf(msg_tosend,"Welcome on the chat %s" ,buff);
 				}
 				else {
+					/* update nickname */
 					sprintf(msg_tosend,"Your new nickname is %s" ,buff);
 				}
 
-				update_nickname(current_client, msgstruct.infos);
-				printf("le nom du client est : %s\n", current_client->nickname);
+				update_nickname(current_client, msgstruct.infos); //add in the list
 				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 				strncpy(msgstruct_tosend.infos, msgstruct.infos, strlen(msgstruct.infos));            
 				msgstruct_tosend.type = NICKNAME_NEW;
@@ -153,7 +156,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 
 		case ECHO_SEND:
 			if (!strcmp(buff,"/quit")){
-				return 0;
+				return 0; //connection closed by client
 			}
 			sprintf(msg_tosend,"[%s] : %s", msgstruct.nick_sender, buff);
 			strncpy(msgstruct_tosend.infos, "\0", 1);
@@ -177,17 +180,6 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
         break;
 
 		case NICKNAME_INFOS:
-			/*
-			if (strcmp("", buff) ==  0){
-				strcpy(msg_tosend,"Please respect /whois <nickname>");
-				sprintf(msgstruct_tosend.nick_sender, "Server");
-            	msgstruct_tosend.type = NICKNAME_INFOS;
-            	msgstruct_tosend.pld_len = strlen(msg_tosend);
-				strcpy(msgstruct_tosend.infos, "Error");
-				send_msg(client_fd,msgstruct_tosend,msg_tosend);
-				return 1;
-			}
-			*/
 			if (client_nick == NULL){
 				sprintf(msg_tosend, "User %s does not exist", buff);
 				sprintf(msgstruct_tosend.nick_sender, "Server");
@@ -197,25 +189,11 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 			}
 			else{
 				sprintf(msg_tosend, "%s connected since %s, with IP adress %s and port number %d\n",client_nick->nickname, client_nick->connection_time, client_nick->adress, client_nick->port);
-				sprintf(msgstruct_tosend.infos, "informations about %s", client_nick->nickname);
+				sprintf(msgstruct_tosend.infos, "%s", client_nick->nickname);
 				sprintf(msgstruct_tosend.nick_sender, "Server");
 				msgstruct_tosend.type = NICKNAME_INFOS;
 				msgstruct_tosend.pld_len = strlen(msg_tosend);
 			}
-
-			/*
-			while (first_client != NULL){
-				if (strcmp(first_client->nickname, buff) == 0){
-					sprintf(msg_tosend, "%s connected since %s, with IP adress %s and port number %d\n",first_client->nickname, first_client->connection_time, first_client->adress, first_client->port);
-					sprintf(msgstruct_tosend.infos, "informations about %s", first_client->nickname);
-				}
-				first_client=first_client->next;
-			}
-			
-            sprintf(msgstruct_tosend.nick_sender, "Server");
-            msgstruct_tosend.type = NICKNAME_INFOS;
-            msgstruct_tosend.pld_len = strlen(msg_tosend);
-			*/
         break;
 
 		case BROADCAST_SEND:
@@ -329,7 +307,7 @@ void echo_server(int server_sock) {
                     break;
                 }
 				else if (0 == ret && 0 == ret_struct){
-					disconnection_client(i, fds[i].fd, fds);
+					disconnection_client(i, fds[i].fd, fds); 
 				}
 				else if(ret != -1 && -1 != ret_struct){
 

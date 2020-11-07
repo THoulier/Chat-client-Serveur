@@ -23,6 +23,7 @@ void send_msg_to_server(int sock_fd, struct message msgstruct, char * buffer){
 }
 
 void message_preparation(char * buff, char * name, int sock_fd){
+	/* prepare the struct msg with the msg before sending */
 	struct message msgstruct;
 	char msg_tosend[MSG_LEN];
 	char temporary_msg[MSG_LEN];
@@ -61,15 +62,15 @@ void message_preparation(char * buff, char * name, int sock_fd){
     }
 	else if(strncmp(buff, "/msg ", strlen("/msg ")) == 0) {
         msgstruct.type = UNICAST_SEND;
-		strcpy(temporary_msg, strchr(buff, ' ') + 1);
-        strcpy(msg_tosend, strchr(temporary_msg, ' ') + 1);
+		strcpy(temporary_msg, strchr(buff, ' ') + 1); 
+        strcpy(msg_tosend, strchr(temporary_msg, ' ') + 1); //keep only the msg
 
-		strncpy(msgstruct.infos, temporary_msg, strlen(temporary_msg)-strlen(msg_tosend)-1);
+		strncpy(msgstruct.infos, temporary_msg, strlen(temporary_msg)-strlen(msg_tosend)-1); //keep only the nickname
         msgstruct.pld_len = strlen(msg_tosend);
         strcpy(msgstruct.nick_sender, name);
     }
 	else {
-		//printf("%s\n",name);
+		/* if the client does not refer a command, he sends a echo msg */
 		msgstruct.pld_len = strlen(buff);
 		strncpy(msgstruct.nick_sender, name, strlen(name));
 		msgstruct.type = ECHO_SEND;
@@ -104,6 +105,7 @@ void echo_client(int sockfd) {
         }
 
 		if (fds[0].revents & POLLIN){
+			/* treating received msg */
 
 			// Receiving structure
 			if (recv(sockfd, &msgstruct, sizeof(struct message), 0) <= 0) {
@@ -118,7 +120,6 @@ void echo_client(int sockfd) {
 
 			if(msgstruct.type == NICKNAME_NEW && strcmp(msgstruct.infos,"Error\0") != 0){
 				strcpy(name,msgstruct.infos);
-				//printf("%s\n",name);
 			} 
 
 			printf("%s\n", buff);
@@ -127,10 +128,9 @@ void echo_client(int sockfd) {
 		}
 
 		if (fds[1].revents & POLLIN){
-
-
+			/* sending msg */
 			read(fds[1].fd,buff, MSG_LEN);
-			buff[strlen(buff) - 1] = 0;
+			buff[strlen(buff) - 1] = 0; //delete \n
 			message_preparation(buff, name, sockfd);
 
 			printf("Message sent!\n");
@@ -149,7 +149,7 @@ int handle_connect(char address_ip[], int portnb) {
 	printf("Creating socket...\n");
     int server_sock =  socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 
-	// create server addr
+	/* create server addr */
 	char  * addr_ip = address_ip;
 	short port = portnb;
 	struct sockaddr_in  server_addr;

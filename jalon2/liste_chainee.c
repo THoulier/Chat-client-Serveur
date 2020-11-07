@@ -17,6 +17,7 @@ void update_nickname(struct client * client, char * nickname){
 }
 
 struct client * find_client_nickname(char * nickname, struct list_client * list_principal){
+    /* find a client having his nickname */
     struct client * first_client = malloc(sizeof(*first_client));
     first_client = list_principal->first;
 	if (strcmp(first_client->nickname,nickname) == 0){
@@ -37,6 +38,7 @@ struct client * find_client_nickname(char * nickname, struct list_client * list_
 
 
 struct client * find_client(int client_fd, struct list_client * list_principal){
+    /* find a client having his fd */
     struct client * first_client = malloc(sizeof(*first_client));
     first_client = list_principal->first;
 	if (first_client->fd == client_fd){
@@ -56,6 +58,7 @@ struct client * find_client(int client_fd, struct list_client * list_principal){
 }
 
 struct list_client * initialisation(){
+    /* list initialisation */
     struct list_client * list = malloc(sizeof(*list));
     struct client * client = malloc(sizeof(*client));
 
@@ -72,6 +75,7 @@ struct list_client * initialisation(){
 }
 
 void insertion(struct list_client * list, int fd, int port, char * adress){
+    /* insertion of a client in the list */
     struct client * new = malloc(sizeof(*new));
     struct tm *tmp = malloc(sizeof(*tmp));
     if(list == NULL || new == NULL){
@@ -89,7 +93,7 @@ void insertion(struct list_client * list, int fd, int port, char * adress){
 }
 
 void suppression(struct client *client, struct list_client *list_principale){
-
+    /* suppression of a client in the list */
 	struct client * prev = malloc(sizeof(*prev));
 	struct client * next = malloc(sizeof(*next));
 	struct client * first_client = malloc(sizeof(*first_client));
