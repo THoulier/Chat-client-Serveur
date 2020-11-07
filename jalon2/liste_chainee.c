@@ -74,16 +74,12 @@ struct list_client * initialisation(){
 void insertion(struct list_client * list, int fd, int port, char * adress){
     struct client * new = malloc(sizeof(*new));
     struct tm *tmp = malloc(sizeof(*tmp));
-    char * outstr = malloc(sizeof(*outstr));
     if(list == NULL || new == NULL){
         exit(EXIT_FAILURE);
     }
     time_t current_time = time(NULL);
-    tmp = localtime(&current_time);
-    strftime(outstr, 200, "%c", tmp);
-    //new->connection_time = ctime(&current_time);
-    new->connection_time = outstr;
-    //printf("%s\n",new->connection_time);
+    new->connection_time = ctime(&current_time);
+
     new->fd = fd;
     new->port = port;
     new->adress = adress;
