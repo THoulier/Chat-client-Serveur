@@ -13,7 +13,7 @@
 
 
 struct channel * find_channel_name(char *name, struct channel_list * list_principal){
-    /* find a client having his nickname */
+    /* find a channel having his name */
     struct channel * first_channel = malloc(sizeof(*first_channel));
     first_channel = list_principal->first;
 	if (strcmp(first_channel->name,name) == 0){
@@ -47,7 +47,7 @@ struct channel_list * channel_initialisation(){
 }
 
 void channel_insertion(struct channel_list * list, int fd, char * name){
-    /* insertion of a client in the list */
+    /* insertion of a channel in the list */
     struct channel * new = malloc(sizeof(*new));
     if(list == NULL || new == NULL){
         exit(EXIT_FAILURE);
@@ -62,7 +62,7 @@ void channel_insertion(struct channel_list * list, int fd, char * name){
 }
 
 void channel_suppression(struct channel *channel, struct channel_list *list_principale){
-    /* suppression of a client in the list */
+    /* suppression of a channel in the list */
 	struct channel * prev = malloc(sizeof(*prev));
 	struct channel * next = malloc(sizeof(*next));
 	struct channel * first_channel = malloc(sizeof(*first_channel));
@@ -107,9 +107,10 @@ void display_channel_list(struct channel_list * list){
     while (current != NULL){
         for (int i=0; i<MAXCLI; i++){
             if (current->fds[i] != -1){
-                printf("%d ->",current->fds[i]);
+                printf("%d : ",current->fds[i]);
             }
         }
+        printf("->");
         current = current->next;
     }
     printf("NULL\n");

@@ -22,7 +22,7 @@ void send_msg_to_server(int sock_fd, struct message msgstruct, char * buffer){
 	}
 }
 
-void message_preparation(char * buff, char * name, int sock_fd){
+void message_preparation(char * buff, char * name, int sock_fd, char * channel_name){
 	/* prepare the struct msg with the msg before sending */
 	struct message msgstruct;
 	char msg_tosend[MSG_LEN];
@@ -64,7 +64,6 @@ void message_preparation(char * buff, char * name, int sock_fd){
         msgstruct.type = UNICAST_SEND;
 		strcpy(temporary_msg, strchr(buff, ' ') + 1); 
         strcpy(msg_tosend, strchr(temporary_msg, ' ') + 1); //keep only the msg
-
 		strncpy(msgstruct.infos, temporary_msg, strlen(temporary_msg)-strlen(msg_tosend)-1); //keep only the nickname
         msgstruct.pld_len = strlen(msg_tosend);
         strcpy(msgstruct.nick_sender, name);
@@ -90,6 +89,20 @@ void message_preparation(char * buff, char * name, int sock_fd){
         msgstruct.pld_len = strlen(msg_tosend);
         strcpy(msgstruct.infos, msg_tosend);
     }
+	else if(strncmp(buff, "/quit ", strlen("/quit ")) == 0) {
+        msgstruct.type = MULTICAST_QUIT;
+        strcpy(msg_tosend, strchr(buff, ' ') + 1);
+        strcpy(msgstruct.nick_sender, name);
+        msgstruct.pld_len = strlen(msg_tosend);
+        strcpy(msgstruct.infos, msg_tosend);
+    }
+	else if(strcmp(channel_name, "") != 0) {
+        msgstruct.type = MULTICAST_SEND;
+		strcpy(msg_tosend, buff);
+        strcpy(msgstruct.infos, channel_name);
+        msgstruct.pld_len = strlen(buff);
+        strcpy(msgstruct.nick_sender, name);
+    }
 	else {
 		/* if the client does not refer a command, he sends a echo msg */
 		msgstruct.pld_len = strlen(buff);
@@ -112,7 +125,9 @@ void echo_client(int sockfd) {
 	fds[1].events = POLLIN;
 	fds[1].fd = STDIN_FILENO;
 
-	char * name = malloc(sizeof(name));
+	char * name = malloc(sizeof(*name));
+	char * channel_name = malloc(sizeof(*channel_name));
+
 	char buff[MSG_LEN];
 	struct message msgstruct;
 	while (1) {
@@ -124,6 +139,10 @@ void echo_client(int sockfd) {
             printf("There is a problem with poll function: error %i\n",ret);
             continue;
         }
+/*
+        if(strcmp(channel_name, "") != 0) {
+			printf("%s > ", channel_name);
+        }*/
 
 		if (fds[0].revents & POLLIN){
 			/* treating received msg */
@@ -142,6 +161,15 @@ void echo_client(int sockfd) {
 			if(msgstruct.type == NICKNAME_NEW && strcmp(msgstruct.infos,"Error\0") != 0){
 				strcpy(name,msgstruct.infos);
 			} 
+			
+			if(msgstruct.type == MULTICAST_CREATE && strcmp(msgstruct.infos,"Error\0") != 0){
+				strcpy(channel_name,msgstruct.infos);
+			} 
+
+			if(msgstruct.type == MULTICAST_QUIT && strcmp(msgstruct.infos, "Error\0") != 0) {
+                strcpy(channel_name,msgstruct.infos);
+	        }
+
 
 			printf("%s\n", buff);
 			//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
@@ -152,9 +180,9 @@ void echo_client(int sockfd) {
 			/* sending msg */
 			read(fds[1].fd,buff, MSG_LEN);
 			buff[strlen(buff) - 1] = 0; //delete \n
-			message_preparation(buff, name, sockfd);
+			message_preparation(buff, name, sockfd, channel_name);
 
-			printf("Message sent!\n");
+			printf("--> Message sent!\n");
 
             if(strcmp(buff, "/quit") == 0) {
                 break;
