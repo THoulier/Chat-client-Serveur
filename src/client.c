@@ -76,6 +76,13 @@ void message_preparation(char * buff, char * name, int sock_fd){
         msgstruct.pld_len = strlen(msg_tosend);
         strcpy(msgstruct.infos, msg_tosend);
     }
+	else if(strncmp(buff, "/channel_list", strlen("/channel_list")) == 0) {
+        msgstruct.type = MULTICAST_LIST;
+        strcpy(msgstruct.nick_sender, name);
+		strcpy(msg_tosend, "\0");
+        msgstruct.pld_len = 1;
+		strncpy(msgstruct.infos, "\0", 1);
+    }
 	else {
 		/* if the client does not refer a command, he sends a echo msg */
 		msgstruct.pld_len = strlen(buff);

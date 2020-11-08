@@ -181,6 +181,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	struct client * current_client = malloc(sizeof(*current_client));
 	struct client * first_client = malloc(sizeof(*first_client));
 	struct client * client_nick = malloc(sizeof(*client_nick));
+	struct channel * first_channel = malloc(sizeof(*first_channel));
 
 	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
 	memset(msg_tosend, 0, MSG_LEN);
@@ -188,6 +189,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	current_client = find_client(client_fd,list_client);
 	first_client = list_client->first;
 	client_nick = find_client_nickname(msgstruct.infos, list_client);
+	first_channel = channel_list->first;
 
 	switch (msgstruct.type){
 		
@@ -312,6 +314,19 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				msgstruct_tosend.type = MULTICAST_CREATE;
 				msgstruct_tosend.pld_len = strlen(msg_tosend);
 			}
+        break;
+
+		case MULTICAST_LIST:
+			strcat(msg_tosend, "Online channels are : \n");
+			while (first_channel != NULL){
+				sprintf(nick_list, "		- %s\n",first_channel->name);
+				strcat(msg_tosend, nick_list);
+				first_channel=first_channel->next;
+			}
+			strcpy(msgstruct_tosend.infos, "\0");
+            strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+            msgstruct_tosend.type = MULTICAST_LIST;
+            msgstruct_tosend.pld_len = strlen(msg_tosend);
         break;
 
 		default:
