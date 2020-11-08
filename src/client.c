@@ -83,6 +83,13 @@ void message_preparation(char * buff, char * name, int sock_fd){
         msgstruct.pld_len = 1;
 		strncpy(msgstruct.infos, "\0", 1);
     }
+	else if(strncmp(buff, "/join ", strlen("/join ")) == 0) {
+        msgstruct.type = MULTICAST_JOIN;
+        strcpy(msg_tosend, strchr(buff, ' ') + 1);
+        strcpy(msgstruct.nick_sender, name);
+        msgstruct.pld_len = strlen(msg_tosend);
+        strcpy(msgstruct.infos, msg_tosend);
+    }
 	else {
 		/* if the client does not refer a command, he sends a echo msg */
 		msgstruct.pld_len = strlen(buff);

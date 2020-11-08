@@ -182,6 +182,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	struct client * first_client = malloc(sizeof(*first_client));
 	struct client * client_nick = malloc(sizeof(*client_nick));
 	struct channel * first_channel = malloc(sizeof(*first_channel));
+	struct channel * channel_name = malloc(sizeof(*channel_name));
 
 	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
 	memset(msg_tosend, 0, MSG_LEN);
@@ -190,6 +191,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	first_client = list_client->first;
 	client_nick = find_client_nickname(msgstruct.infos, list_client);
 	first_channel = channel_list->first;
+	
 
 	switch (msgstruct.type){
 		
@@ -327,6 +329,29 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
             strncpy(msgstruct_tosend.nick_sender, "Server", 6);
             msgstruct_tosend.type = MULTICAST_LIST;
             msgstruct_tosend.pld_len = strlen(msg_tosend);
+        break;
+
+		case MULTICAST_JOIN:
+			channel_name = find_channel_name(msgstruct.infos, channel_list);
+			if (channel_name == NULL){
+				msgstruct_tosend.type = MULTICAST_JOIN;
+				sprintf(msg_tosend, "[Server] : Channel %s does not exist", msgstruct.infos);
+				strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));
+				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+			}
+			else{
+				int cpt;
+				while (channel_name->fds[cpt] != -1){
+					cpt ++;
+				}
+				channel_name->fds[cpt] = client_fd;
+				sprintf(msg_tosend,"[Server]: You have joined channel %s", msgstruct.infos);
+				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+				sprintf(msgstruct_tosend.infos, "%s", msgstruct.infos);
+				msgstruct_tosend.type = MULTICAST_CREATE;
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+			}
         break;
 
 		default:

@@ -12,7 +12,25 @@
 #include "channel_list.h"
 
 
-
+struct channel * find_channel_name(char *name, struct channel_list * list_principal){
+    /* find a client having his nickname */
+    struct channel * first_channel = malloc(sizeof(*first_channel));
+    first_channel = list_principal->first;
+	if (strcmp(first_channel->name,name) == 0){
+		return 	first_channel;	
+	}
+	else {
+		while (first_channel != NULL){
+			if (strcmp(first_channel->name,name) == 0){
+                return 	first_channel;
+			}
+			else{
+				first_channel=first_channel->next;
+			}
+		}
+	}
+    return NULL;
+}
 
 struct channel_list * channel_initialisation(){
     /* list initialisation */
