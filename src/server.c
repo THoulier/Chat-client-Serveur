@@ -59,6 +59,62 @@ void disconnection_client(int client_nb, int client_fd, struct pollfd * fds) {
 	memset((fds + client_nb),0,sizeof(struct pollfd));
 }
 
+int channel_name_validity (char * name, int client_fd){
+	/* verify the nickname validity */
+	char msg_tosend[MSG_LEN];
+	struct message msgstruct_tosend;
+	struct channel * first_channel = malloc(sizeof(*first_channel));
+
+	memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
+	memset(msg_tosend, 0, MSG_LEN);
+
+	first_channel = channel_list->first;
+
+	if (strlen(name) > NICK_LEN){
+		strcpy(msg_tosend,"The channel name must have between 1 and 128 characters");
+		strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+		strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));            
+		msgstruct_tosend.type = MULTICAST_CREATE;
+        msgstruct_tosend.pld_len = strlen(msg_tosend);	
+		send_msg(client_fd, msgstruct_tosend, msg_tosend);
+		return 1;
+	}
+
+	for (int i = 0; i<strlen(name); i++){
+		if (isalpha(name[i]) == 0){
+			strcpy(msg_tosend,"The channel name must not contained special characters nor spaces");
+			strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+			strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));            
+			msgstruct_tosend.type = MULTICAST_CREATE;
+			msgstruct_tosend.pld_len = strlen(msg_tosend);	
+			send_msg(client_fd, msgstruct_tosend, msg_tosend);
+			return 1;
+		}
+	}
+
+	int exist = 0;
+
+	while (first_channel != NULL){
+		if (strcmp(first_channel->name, name) == 0){
+			exist = 1;
+		}
+		first_channel=first_channel->next;
+	}
+	
+	printf("%d\n", exist);
+	if (exist == 1){
+		strcpy(msg_tosend,"The channel name already exists");
+		strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+		strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));            
+		msgstruct_tosend.type = MULTICAST_CREATE;
+		msgstruct_tosend.pld_len = strlen(msg_tosend);
+		send_msg(client_fd, msgstruct_tosend, msg_tosend);
+		return 1;
+	}
+	return 0;
+}
+
+
 int nickname_validity (char *  nickname, int client_fd){
 	/* verify the nickname validity */
 	char msg_tosend[MSG_LEN];
@@ -245,12 +301,17 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 		break;
 
 		case MULTICAST_CREATE:
-            channel_insertion(channel_list, client_fd, msgstruct.infos);
-			sprintf(msg_tosend,"[Server]: You have created channel %s", msgstruct.infos);
-            strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
-            strcpy(msgstruct_tosend.infos, "Creation succeed");
-            msgstruct_tosend.type = MULTICAST_CREATE;
-            msgstruct_tosend.pld_len = strlen(msg_tosend);
+			if (channel_name_validity(msgstruct.infos, client_fd) == 1){
+				return 1;
+			}
+			else {
+				channel_insertion(channel_list, client_fd, msgstruct.infos);
+				sprintf(msg_tosend,"[Server]: You have created channel %s", msgstruct.infos);
+				strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
+				strcpy(msgstruct_tosend.infos, "Creation succeed");
+				msgstruct_tosend.type = MULTICAST_CREATE;
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+			}
         break;
 
 		default:
