@@ -89,6 +89,13 @@ void message_preparation(char * buff, char * name, int sock_fd, char * channel_n
         msgstruct.pld_len = strlen(msg_tosend);
         strcpy(msgstruct.infos, msg_tosend);
     }
+	else if(strncmp(buff, "/join ", strlen("/join ")) == 0 && strcmp(channel_name, "") != 0) {
+        msgstruct.type = MULTICAST_CHANGE;
+        strcpy(msg_tosend, strchr(buff, ' ') + 1);
+        strcpy(msgstruct.nick_sender, name);
+        msgstruct.pld_len = strlen(msg_tosend);
+        strcpy(msgstruct.infos, msg_tosend);
+    }
 	else if(strncmp(buff, "/quit ", strlen("/quit ")) == 0) {
         msgstruct.type = MULTICAST_QUIT;
         strcpy(msg_tosend, strchr(buff, ' ') + 1);

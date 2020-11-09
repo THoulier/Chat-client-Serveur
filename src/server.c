@@ -111,6 +111,8 @@ int channel_name_validity (char * name, int client_fd){
 		send_msg(client_fd, msgstruct_tosend, msg_tosend);
 		return 1;
 	}
+
+	free(first_channel);
 	return 0;
 }
 
@@ -168,6 +170,8 @@ int nickname_validity (char *  nickname, int client_fd){
 		send_msg(client_fd, msgstruct_tosend, msg_tosend);
 		return 1;
 	}
+
+	free(first_client);
 	return 0;
 }
 
@@ -367,6 +371,42 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 			}
         break;
 
+		case MULTICAST_CHANGE:
+			channel_name = find_channel_name(msgstruct.infos, channel_list);
+			if (channel_name == NULL){
+				msgstruct_tosend.type = MULTICAST_JOIN;
+				sprintf(msg_tosend, "[Server] : Channel %s does not exist", msgstruct.infos);
+				strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));
+				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+			}
+			else {
+				int cpt = 0;
+				while (channel_name->fds[cpt] != -1){
+					cpt ++;
+				}
+				channel_name->fds[cpt] = client_fd;
+				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+				sprintf(msgstruct_tosend.infos, "%s", msgstruct.infos);
+				msgstruct_tosend.type = MULTICAST_CREATE;
+				for (int i=0; i<MAXCLI; i++){
+					if (channel_name->fds[i] != -1){
+						if (channel_name->fds[i] == client_fd){
+							sprintf(msg_tosend,"[Server]: You have joined channel %s", msgstruct.infos);
+							msgstruct_tosend.pld_len = strlen(msg_tosend);
+							send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
+						}
+						else {
+							sprintf(msg_tosend,"%s > %s has joined the channel",msgstruct.infos, msgstruct.nick_sender);
+							msgstruct_tosend.pld_len = strlen(msg_tosend);
+							send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
+						}
+					}
+				}
+				return 1;
+			}
+		break;
+
 		case MULTICAST_QUIT:
 			channel_name = find_channel_name(msgstruct.infos, channel_list);
 			if (channel_name == NULL){
@@ -440,6 +480,12 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 					
 	send_msg(client_fd,msgstruct_tosend,msg_tosend);
+/*
+	free(current_client);
+	free(first_client);
+	free(client_nick);
+	free(first_channel);
+	free(channel_name);*/
 	return 1;
 
 }
