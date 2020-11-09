@@ -11,6 +11,19 @@
 
 #include "channel_list.h"
 
+int channel_is_empty(struct channel * channel){
+    int cpt = 0;
+    for (int i=0; i<MAXCLI; i++){
+        if (channel->fds[i] != -1){
+            cpt ++;
+        }
+    }
+    if (cpt != 0){
+        return 0;
+    }
+    return 1;
+}
+
 
 struct channel * find_channel_name(char *name, struct channel_list * list_principal){
     /* find a channel having his name */

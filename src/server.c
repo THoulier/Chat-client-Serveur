@@ -378,22 +378,32 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 			}
 			else{
 				msgstruct_tosend.type = MULTICAST_QUIT;
-				strncpy(msgstruct_tosend.infos, "", 0);
-				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 				for (int i=0; i<MAXCLI; i++){
 					if (channel_name->fds[i] != -1){
 						if (channel_name->fds[i] == client_fd){
+							strncpy(msgstruct_tosend.infos, "", 0);
+							strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 							sprintf(msg_tosend, "[Server] : You have left channel %s", msgstruct.infos);
 							msgstruct_tosend.pld_len = strlen(msg_tosend);
 							send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
 							channel_name->fds[i] = -1;
 						}
 						else {
+							strcpy(msgstruct_tosend.infos, msgstruct.infos);
+							strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 							sprintf(msg_tosend,"%s > %s has left the channel",msgstruct.infos, msgstruct.nick_sender);
 							msgstruct_tosend.pld_len = strlen(msg_tosend);
 							send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
 						}
 					}
+				}
+				if (channel_is_empty(channel_name)){
+					channel_suppression(channel_name, channel_list);
+					strncpy(msgstruct_tosend.infos, "", 0);
+					strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+					sprintf(msg_tosend, "[Server] : Channel %s has been destroyed", msgstruct.infos);
+					msgstruct_tosend.pld_len = strlen(msg_tosend);
+					send_msg(client_fd,msgstruct_tosend,msg_tosend);
 				}
 				return 1;
 			}
