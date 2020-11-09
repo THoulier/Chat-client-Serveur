@@ -346,11 +346,24 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 					cpt ++;
 				}
 				channel_name->fds[cpt] = client_fd;
-				sprintf(msg_tosend,"[Server]: You have joined channel %s", msgstruct.infos);
 				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 				sprintf(msgstruct_tosend.infos, "%s", msgstruct.infos);
 				msgstruct_tosend.type = MULTICAST_CREATE;
-				msgstruct_tosend.pld_len = strlen(msg_tosend);
+				for (int i=0; i<MAXCLI; i++){
+					if (channel_name->fds[i] != -1){
+						if (channel_name->fds[i] == client_fd){
+							sprintf(msg_tosend,"[Server]: You have joined channel %s", msgstruct.infos);
+							msgstruct_tosend.pld_len = strlen(msg_tosend);
+							send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
+						}
+						else {
+							sprintf(msg_tosend,"%s > %s has joined the channel",msgstruct.infos, msgstruct.nick_sender);
+							msgstruct_tosend.pld_len = strlen(msg_tosend);
+							send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
+						}
+					}
+				}
+				return 1;
 			}
         break;
 
@@ -364,29 +377,45 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				msgstruct_tosend.pld_len = strlen(msg_tosend);
 			}
 			else{
-				int cpt = 0;
-				while (channel_name->fds[cpt] != current_client->fd){
-					cpt ++;
-				}
-				channel_name->fds[cpt] = -1;
 				msgstruct_tosend.type = MULTICAST_QUIT;
-				sprintf(msg_tosend, "[Server] : You have left channel %s", msgstruct.infos);
 				strncpy(msgstruct_tosend.infos, "", 0);
 				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
-				msgstruct_tosend.pld_len = strlen(msg_tosend);
+				for (int i=0; i<MAXCLI; i++){
+					if (channel_name->fds[i] != -1){
+						if (channel_name->fds[i] == client_fd){
+							sprintf(msg_tosend, "[Server] : You have left channel %s", msgstruct.infos);
+							msgstruct_tosend.pld_len = strlen(msg_tosend);
+							send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
+							channel_name->fds[i] = -1;
+						}
+						else {
+							sprintf(msg_tosend,"%s > %s has left the channel",msgstruct.infos, msgstruct.nick_sender);
+							msgstruct_tosend.pld_len = strlen(msg_tosend);
+							send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
+						}
+					}
+				}
+				return 1;
 			}
 		break;
 
 		case MULTICAST_SEND:
 			channel_name = find_channel_name(msgstruct.infos, channel_list);
 			msgstruct_tosend.type = MULTICAST_SEND;
-			sprintf(msg_tosend,"%s > [%s] : %s",msgstruct.infos, msgstruct.nick_sender, buff);
 			strcpy(msgstruct_tosend.infos, msgstruct.infos);
 			strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
-			msgstruct_tosend.pld_len = strlen(msg_tosend);
 			for (int i=0; i<MAXCLI; i++){
-				if (channel_name->fds[i] != -1 && channel_name->fds[i] != client_fd){
-					send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
+				if (channel_name->fds[i] != -1){
+					if (channel_name->fds[i] == client_fd){
+						sprintf(msg_tosend,"%s > [Me] : %s",msgstruct.infos, buff);
+						msgstruct_tosend.pld_len = strlen(msg_tosend);
+						send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
+					}
+					else {
+						sprintf(msg_tosend,"%s > [%s] : %s",msgstruct.infos, msgstruct.nick_sender, buff);
+						msgstruct_tosend.pld_len = strlen(msg_tosend);
+						send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
+					}
 				}
 			}
 			printf("[Client %i] : %s\n", client_nb,buff);

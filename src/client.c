@@ -139,10 +139,6 @@ void echo_client(int sockfd) {
             printf("There is a problem with poll function: error %i\n",ret);
             continue;
         }
-/*
-        if(strcmp(channel_name, "") != 0) {
-			printf("%s > ", channel_name);
-        }*/
 
 		if (fds[0].revents & POLLIN){
 			/* treating received msg */
@@ -182,7 +178,7 @@ void echo_client(int sockfd) {
 			buff[strlen(buff) - 1] = 0; //delete \n
 			message_preparation(buff, name, sockfd, channel_name);
 
-			printf("--> Message sent!\n");
+			//printf("--> Message sent!\n");
 
             if(strcmp(buff, "/quit") == 0) {
                 break;
