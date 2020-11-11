@@ -101,7 +101,6 @@ void message_preparation(char * buff, char * name, int sock_fd, char * channel_n
 		strcpy(msg_tosend, buff);
         strcpy(msgstruct.infos, channel_name);
         msgstruct.pld_len = strlen(buff);
-		printf("%s\n",name);
         strcpy(msgstruct.nick_sender, name);
     }
 	else {
@@ -155,22 +154,21 @@ void echo_client(int sockfd) {
 				break;
 			}
 
+			/* MAJ du nickname */
 			if(msgstruct.type == NICKNAME_NEW && strcmp(msgstruct.infos,"Error\0") != 0){
 				strcpy(name,msgstruct.infos);
 			} 
-			
+			/* le client rentre dans la channel qu'il vient de créer */
 			if(msgstruct.type == MULTICAST_CREATE && strcmp(msgstruct.infos,"Error\0") != 0){
 				strcpy(channel_name,msgstruct.infos);
 			} 
-
+			/* MAJ de la channel quand le client en rejoint une */
 			if(msgstruct.type == MULTICAST_JOIN && strcmp(msgstruct.infos,"Error\0") != 0){
 				strcpy(channel_name,msgstruct.infos);
 			} 
-
+			/* MAJ de la channel lorque le client la quitte */
 			if(msgstruct.type == MULTICAST_QUIT && strcmp(msgstruct.infos, "Error\0") != 0) {
-				printf("%s\n",channel_name);
                 strcpy(channel_name,msgstruct.infos);
-				printf("%s\n",channel_name);
 	        }
 
 
@@ -187,7 +185,7 @@ void echo_client(int sockfd) {
 
 			//printf("--> Message sent!\n");
 
-            if(strcmp(buff, "/quit") == 0) {
+            if(strcmp(buff, "/quit") == 0 && strcmp(channel_name, "") == 0) {
                 break;
             }
 

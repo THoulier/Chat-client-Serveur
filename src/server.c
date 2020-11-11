@@ -101,7 +101,6 @@ int channel_name_validity (char * name, int client_fd){
 		first_channel=first_channel->next;
 	}
 	
-	printf("%d\n", exist);
 	if (exist == 1){
 		strcpy(msg_tosend,"The channel name already exists");
 		strncpy(msgstruct_tosend.nick_sender, "Server", 6);
@@ -154,13 +153,11 @@ int nickname_validity (char *  nickname, int client_fd){
 
 	while (first_client != NULL){
 		if (strcmp(first_client->nickname, nickname) == 0){
-			printf("%d\n",strcmp(first_client->nickname, nickname));
 			exist = 1;
 		}
 		first_client=first_client->next;
 	}
 	
-	printf("%d\n", exist);
 	if (exist == 1){
 		strcpy(msg_tosend,"Your nickname already exists");
 		strncpy(msgstruct_tosend.nick_sender, "Server", 6);
@@ -336,8 +333,9 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
         break;
 
 		case MULTICAST_JOIN:
-			channel_name = find_channel_name(msgstruct.infos, channel_list);
+			channel_name = find_channel_name(msgstruct.infos, channel_list); //the client wants to join this channel
 			if (channel_name == NULL){
+				/* if the channel does not exist */
 				msgstruct_tosend.type = MULTICAST_JOIN;
 				sprintf(msg_tosend, "[Server] : Channel %s does not exist", msgstruct.infos);
 				strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));
@@ -347,12 +345,14 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 			}
 			else{
 				while (first_channel != NULL){
+					/* if the client was in a channel, he quits this channel */
 					for (int i=0; i<MAXCLI; i++){
 						if (first_channel->fds[i] == client_fd){
 							first_channel->fds[i] = -1;
 						}
 					}
 					if (channel_is_empty(first_channel)){
+						/* if the channel quited is empty, it is supressed */
 						strncpy(msgstruct_tosend.infos, "", 0);
 						strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 						sprintf(msg_tosend, "[Server] : Channel %s has been destroyed", first_channel->name);
@@ -367,6 +367,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				while (channel_name->fds[cpt] != -1){
 					cpt ++;
 				}
+				/* add the client to the new channel */
 				channel_name->fds[cpt] = client_fd;
 				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 				sprintf(msgstruct_tosend.infos, "%s", msgstruct.infos);
@@ -400,11 +401,12 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				msgstruct_tosend.pld_len = strlen(msg_tosend);
 			}
 			else{
-				msgstruct_tosend.type = MULTICAST_QUIT;
 				for (int i=0; i<MAXCLI; i++){
+					/* supress the client from the channel fds */
 					if (channel_name->fds[i] != -1){
 						if (channel_name->fds[i] == client_fd){
-							strncpy(msgstruct_tosend.infos, "", 0);
+							msgstruct_tosend.type = MULTICAST_QUIT;
+							strcpy(msgstruct_tosend.infos, "");
 							strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 							sprintf(msg_tosend, "[Server] : You have left channel %s", msgstruct.infos);
 							msgstruct_tosend.pld_len = strlen(msg_tosend);
@@ -412,6 +414,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 							channel_name->fds[i] = -1;
 						}
 						else {
+							msgstruct_tosend.type = MULTICAST_QUIT;
 							strcpy(msgstruct_tosend.infos, msgstruct.infos);
 							strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 							sprintf(msg_tosend,"%s > %s has left the channel",msgstruct.infos, msgstruct.nick_sender);
@@ -421,6 +424,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 					}
 				}
 				if (channel_is_empty(channel_name)){
+					/* if the channel quited is empty, it is supressed */
 					channel_suppression(channel_name, channel_list);
 					strncpy(msgstruct_tosend.infos, "", 0);
 					strncpy(msgstruct_tosend.nick_sender, "Server", 6);
@@ -434,11 +438,23 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 		break;
 
 		case MULTICAST_SEND:
+		
+			if (!strcmp(buff,"/quit")){
+				/* empeche le client de quitter le chat quand il est dans une channel */
+				strcpy(msg_tosend, "[Server] : You can't quit the chat when you're in a channel\n");
+				msgstruct_tosend.type = MULTICAST_SEND;
+				strcpy(msgstruct_tosend.infos, msgstruct.infos);
+				strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+				send_msg(client_fd, msgstruct_tosend, msg_tosend);
+				return 1;
+			}
 			channel_name = find_channel_name(msgstruct.infos, channel_list);
 			msgstruct_tosend.type = MULTICAST_SEND;
 			strcpy(msgstruct_tosend.infos, msgstruct.infos);
 			strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
 			for (int i=0; i<MAXCLI; i++){
+				/*send the message to all the clients in the channel */
 				if (channel_name->fds[i] != -1){
 					if (channel_name->fds[i] == client_fd){
 						sprintf(msg_tosend,"%s > [Me] : %s",msgstruct.infos, buff);
