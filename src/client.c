@@ -89,13 +89,6 @@ void message_preparation(char * buff, char * name, int sock_fd, char * channel_n
         msgstruct.pld_len = strlen(msg_tosend);
         strcpy(msgstruct.infos, msg_tosend);
     }
-	else if(strncmp(buff, "/join ", strlen("/join ")) == 0 && strcmp(channel_name, "") != 0) {
-        msgstruct.type = MULTICAST_CHANGE;
-        strcpy(msg_tosend, strchr(buff, ' ') + 1);
-        strcpy(msgstruct.nick_sender, name);
-        msgstruct.pld_len = strlen(msg_tosend);
-        strcpy(msgstruct.infos, msg_tosend);
-    }
 	else if(strncmp(buff, "/quit ", strlen("/quit ")) == 0) {
         msgstruct.type = MULTICAST_QUIT;
         strcpy(msg_tosend, strchr(buff, ' ') + 1);
@@ -108,6 +101,7 @@ void message_preparation(char * buff, char * name, int sock_fd, char * channel_n
 		strcpy(msg_tosend, buff);
         strcpy(msgstruct.infos, channel_name);
         msgstruct.pld_len = strlen(buff);
+		printf("%s\n",name);
         strcpy(msgstruct.nick_sender, name);
     }
 	else {
@@ -169,8 +163,14 @@ void echo_client(int sockfd) {
 				strcpy(channel_name,msgstruct.infos);
 			} 
 
+			if(msgstruct.type == MULTICAST_JOIN && strcmp(msgstruct.infos,"Error\0") != 0){
+				strcpy(channel_name,msgstruct.infos);
+			} 
+
 			if(msgstruct.type == MULTICAST_QUIT && strcmp(msgstruct.infos, "Error\0") != 0) {
+				printf("%s\n",channel_name);
                 strcpy(channel_name,msgstruct.infos);
+				printf("%s\n",channel_name);
 	        }
 
 

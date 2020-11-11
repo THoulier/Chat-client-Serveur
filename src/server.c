@@ -343,8 +343,26 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));
 				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 				msgstruct_tosend.pld_len = strlen(msg_tosend);
+				send_msg(client_fd, msgstruct_tosend, msg_tosend);
 			}
 			else{
+				while (first_channel != NULL){
+					for (int i=0; i<MAXCLI; i++){
+						if (first_channel->fds[i] == client_fd){
+							first_channel->fds[i] = -1;
+						}
+					}
+					if (channel_is_empty(first_channel)){
+						strncpy(msgstruct_tosend.infos, "", 0);
+						strncpy(msgstruct_tosend.nick_sender, "Server", 6);
+						sprintf(msg_tosend, "[Server] : Channel %s has been destroyed", first_channel->name);
+						msgstruct_tosend.pld_len = strlen(msg_tosend);
+						msgstruct_tosend.type = MULTICAST_JOIN;
+						channel_suppression(first_channel, channel_list);
+						send_msg(client_fd,msgstruct_tosend,msg_tosend);
+					}
+					first_channel = first_channel->next;
+				}
 				int cpt = 0;
 				while (channel_name->fds[cpt] != -1){
 					cpt ++;
@@ -352,7 +370,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				channel_name->fds[cpt] = client_fd;
 				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
 				sprintf(msgstruct_tosend.infos, "%s", msgstruct.infos);
-				msgstruct_tosend.type = MULTICAST_CREATE;
+				msgstruct_tosend.type = MULTICAST_JOIN;
 				for (int i=0; i<MAXCLI; i++){
 					if (channel_name->fds[i] != -1){
 						if (channel_name->fds[i] == client_fd){
@@ -367,45 +385,10 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 						}
 					}
 				}
+				printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 				return 1;
 			}
         break;
-
-		case MULTICAST_CHANGE:
-			channel_name = find_channel_name(msgstruct.infos, channel_list);
-			if (channel_name == NULL){
-				msgstruct_tosend.type = MULTICAST_JOIN;
-				sprintf(msg_tosend, "[Server] : Channel %s does not exist", msgstruct.infos);
-				strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));
-				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
-				msgstruct_tosend.pld_len = strlen(msg_tosend);
-			}
-			else {
-				int cpt = 0;
-				while (channel_name->fds[cpt] != -1){
-					cpt ++;
-				}
-				channel_name->fds[cpt] = client_fd;
-				strncpy(msgstruct_tosend.nick_sender, "Server", 6);
-				sprintf(msgstruct_tosend.infos, "%s", msgstruct.infos);
-				msgstruct_tosend.type = MULTICAST_CREATE;
-				for (int i=0; i<MAXCLI; i++){
-					if (channel_name->fds[i] != -1){
-						if (channel_name->fds[i] == client_fd){
-							sprintf(msg_tosend,"[Server]: You have joined channel %s", msgstruct.infos);
-							msgstruct_tosend.pld_len = strlen(msg_tosend);
-							send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
-						}
-						else {
-							sprintf(msg_tosend,"%s > %s has joined the channel",msgstruct.infos, msgstruct.nick_sender);
-							msgstruct_tosend.pld_len = strlen(msg_tosend);
-							send_msg(channel_name->fds[i],msgstruct_tosend,msg_tosend);
-						}
-					}
-				}
-				return 1;
-			}
-		break;
 
 		case MULTICAST_QUIT:
 			channel_name = find_channel_name(msgstruct.infos, channel_list);
@@ -445,6 +428,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 					msgstruct_tosend.pld_len = strlen(msg_tosend);
 					send_msg(client_fd,msgstruct_tosend,msg_tosend);
 				}
+				printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 				return 1;
 			}
 		break;
@@ -480,12 +464,6 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 	printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 					
 	send_msg(client_fd,msgstruct_tosend,msg_tosend);
-/*
-	free(current_client);
-	free(first_client);
-	free(client_nick);
-	free(first_channel);
-	free(channel_name);*/
 	return 1;
 
 }

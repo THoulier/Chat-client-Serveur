@@ -33,6 +33,7 @@ struct client * find_client_nickname(char * nickname, struct list_client * list_
 			}
 		}
 	}
+    free(first_client);
     return NULL;
 }
 
@@ -54,6 +55,7 @@ struct client * find_client(int client_fd, struct list_client * list_principal){
 			}
 		}
 	}
+    free(first_client);
     return NULL;
 }
 
