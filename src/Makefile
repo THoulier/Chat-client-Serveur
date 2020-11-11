@@ -1,7 +1,7 @@
 CFLAGS=-Wall
 #LDFLAGS=-lpthread
-OBJFILES=liste_chainee.o channel_list.o
-TARGET = server client
+OBJFILES=liste_chainee.o channel_list.o functions.o
+TARGET = server client 
 
 all: $(TARGET)
 
