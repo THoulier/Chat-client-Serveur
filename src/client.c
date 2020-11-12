@@ -103,6 +103,15 @@ void message_preparation(char * buff, char * name, int sock_fd, char * channel_n
         msgstruct.pld_len = strlen(buff);
         strcpy(msgstruct.nick_sender, name);
     }
+	else if(strncmp(buff, "/send ", strlen("/send ")) == 0) {
+        msgstruct.type = FILE_REQUEST;
+        strcpy(temporary_msg, strchr(buff, ' ') + 1); 
+        strcpy(msg_tosend, strchr(temporary_msg, ' ') + 1); //keep only the file name
+		strncpy(msgstruct.infos, temporary_msg, strlen(temporary_msg)-strlen(msg_tosend)-1); //keep only the nickname
+		printf("%s %d\n",msg_tosend,strlen(msg_tosend));
+        msgstruct.pld_len = strlen(msg_tosend);
+        strcpy(msgstruct.nick_sender, name);
+    }
 	else {
 		/* if the client does not refer a command, he sends a echo msg */
 		msgstruct.pld_len = strlen(buff);
@@ -112,6 +121,21 @@ void message_preparation(char * buff, char * name, int sock_fd, char * channel_n
 		strncpy(msg_tosend, buff, strlen(buff));
 	}
 	send_msg_to_server(sock_fd,msgstruct,msg_tosend);
+	
+}
+
+void file_accept_preparation(char * buff, char * name, int sock_fd, char * file_sender_nickname){
+	struct message msgstruct;
+	char msg_tosend[MSG_LEN];
+	memset(msg_tosend, 0, MSG_LEN);
+    memset(&msgstruct, 0, sizeof(struct message));
+
+	msgstruct.type = FILE_ACCEPT;
+	strncpy(msgstruct.nick_sender, name, strlen(name));
+	strncpy(msgstruct.infos, "\0", 1);
+	strncpy(msg_tosend, file_sender_nickname, strlen(file_sender_nickname));
+	msgstruct.pld_len = strlen(file_sender_nickname);
+	send_msg_to_server(sock_fd, msgstruct, msg_tosend);
 	
 }
 
@@ -127,9 +151,13 @@ void echo_client(int sockfd) {
 
 	char * name = malloc(sizeof(*name));
 	char * channel_name = malloc(sizeof(*channel_name));
+    char * file_sender_nickname = malloc(sizeof(*file_sender_nickname));
 
 	char buff[MSG_LEN];
 	struct message msgstruct;
+
+	int file_accepted = 0;
+	
 	while (1) {
 		
 		memset(buff, 0, MSG_LEN);
@@ -170,7 +198,12 @@ void echo_client(int sockfd) {
 			if(msgstruct.type == MULTICAST_QUIT && strcmp(msgstruct.infos, "Error\0") != 0) {
                 strcpy(channel_name,msgstruct.infos);
 	        }
-
+            if (msgstruct.type == FILE_REQUEST && strcmp(msgstruct.infos, "Error") != 0) {
+				if (strcmp(buff, "Y")== 0 || strcmp(buff, "y")== 0){
+					strcpy(file_sender_nickname,msgstruct.nick_sender);
+					file_accepted = 1;
+				}
+            }
 
 			printf("%s\n", buff);
 			//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
@@ -181,6 +214,10 @@ void echo_client(int sockfd) {
 			/* sending msg */
 			read(fds[1].fd,buff, MSG_LEN);
 			buff[strlen(buff) - 1] = 0; //delete \n
+
+			if (file_accepted){
+
+			}
 			message_preparation(buff, name, sockfd, channel_name);
 
 			//printf("--> Message sent!\n");
