@@ -454,6 +454,44 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 			}
 		break;
 
+		case FILE_ACCEPT:
+			if (client_nick == NULL){
+				msgstruct_tosend.type = FILE_ACCEPT;
+				sprintf(msg_tosend, "User %s does not exist", msgstruct.infos);
+				strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));
+				strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+			}
+			else {
+				msgstruct_tosend.type = FILE_ACCEPT;
+				strcpy(msgstruct_tosend.infos,msgstruct.infos);
+				sprintf(msg_tosend,"%s accepted file transfert", msgstruct.nick_sender);
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+				strcpy(msgstruct_tosend.nick_sender,msgstruct.nick_sender);
+				send_msg(client_nick->fd, msgstruct_tosend,msg_tosend);
+				return 1;
+			}
+		break;
+
+		case FILE_REJECT:
+			if (client_nick == NULL){
+				msgstruct_tosend.type = FILE_REJECT;
+				sprintf(msg_tosend, "User %s does not exist", msgstruct.infos);
+				strncpy(msgstruct_tosend.infos, "Error", strlen("Error"));
+				strcpy(msgstruct_tosend.nick_sender, msgstruct.nick_sender);
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+			}
+			else {
+				msgstruct_tosend.type = FILE_REJECT;
+				strcpy(msgstruct_tosend.infos,msgstruct.infos);
+				sprintf(msg_tosend,"%s didn't accept file transfert", msgstruct.nick_sender);
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+				strcpy(msgstruct_tosend.nick_sender,msgstruct.nick_sender);
+				send_msg(client_nick->fd, msgstruct_tosend,msg_tosend);
+				return 1;
+			}
+		break;
+
 		default:
         break;
 	}

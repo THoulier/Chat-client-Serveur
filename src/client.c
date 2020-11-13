@@ -124,7 +124,7 @@ void message_preparation(char * buff, char * name, int sock_fd, char * channel_n
 	
 }
 
-void file_accept_preparation(char * buff, char * name, int sock_fd, char * file_sender_nickname){
+void file_accepted_preparation(char * buff, char * name, int sock_fd, char * file_sender_nickname){
 	struct message msgstruct;
 	char msg_tosend[MSG_LEN];
 	memset(msg_tosend, 0, MSG_LEN);
@@ -132,11 +132,26 @@ void file_accept_preparation(char * buff, char * name, int sock_fd, char * file_
 
 	msgstruct.type = FILE_ACCEPT;
 	strncpy(msgstruct.nick_sender, name, strlen(name));
-	strncpy(msgstruct.infos, "\0", 1);
-	strncpy(msg_tosend, file_sender_nickname, strlen(file_sender_nickname));
-	msgstruct.pld_len = strlen(file_sender_nickname);
+	strncpy(msgstruct.infos, file_sender_nickname, strlen(file_sender_nickname));
+	strncpy(msg_tosend, "\0",1);
+	msgstruct.pld_len = strlen(msg_tosend);
 	send_msg_to_server(sock_fd, msgstruct, msg_tosend);
 	
+}
+
+void file_rejected_preparation(char * buff, char * name, int sock_fd, char * file_sender_nickname){
+	struct message msgstruct;
+	char msg_tosend[MSG_LEN];
+	memset(msg_tosend, 0, MSG_LEN);
+    memset(&msgstruct, 0, sizeof(struct message));
+
+	msgstruct.type = FILE_REJECT;
+	strncpy(msgstruct.nick_sender, name, strlen(name));
+	strncpy(msgstruct.infos, file_sender_nickname, strlen(file_sender_nickname));
+	strncpy(msg_tosend, "\0",1);
+	msgstruct.pld_len = strlen(msg_tosend);
+	send_msg_to_server(sock_fd, msgstruct, msg_tosend);
+
 }
 
 void echo_client(int sockfd) {
@@ -199,10 +214,9 @@ void echo_client(int sockfd) {
                 strcpy(channel_name,msgstruct.infos);
 	        }
             if (msgstruct.type == FILE_REQUEST && strcmp(msgstruct.infos, "Error") != 0) {
-				if (strcmp(buff, "Y")== 0 || strcmp(buff, "y")== 0){
-					strcpy(file_sender_nickname,msgstruct.nick_sender);
-					file_accepted = 1;
-				}
+				strcpy(file_sender_nickname,msgstruct.nick_sender);
+				file_accepted = 1;
+				
             }
 
 			printf("%s\n", buff);
@@ -216,10 +230,17 @@ void echo_client(int sockfd) {
 			buff[strlen(buff) - 1] = 0; //delete \n
 
 			if (file_accepted){
-
+				if (strcmp(buff, "Y")== 0 || strcmp(buff, "y")== 0){
+					file_accepted_preparation(buff,name,sockfd,file_sender_nickname);
+				}
+				else {
+					file_rejected_preparation(buff,name,sockfd,file_sender_nickname);
+				}
+				file_accepted = 0;
 			}
-			message_preparation(buff, name, sockfd, channel_name);
-
+			else{
+				message_preparation(buff, name, sockfd, channel_name);
+			}
 			//printf("--> Message sent!\n");
 
             if(strcmp(buff, "/quit") == 0 && strcmp(channel_name, "") == 0) {
