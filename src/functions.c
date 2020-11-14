@@ -464,11 +464,15 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 			}
 			else {
 				msgstruct_tosend.type = FILE_ACCEPT;
-				strcpy(msgstruct_tosend.infos,msgstruct.infos);
+				strcpy(msgstruct_tosend.infos,buff);
 				sprintf(msg_tosend,"%s accepted file transfert", msgstruct.nick_sender);
 				msgstruct_tosend.pld_len = strlen(msg_tosend);
 				strcpy(msgstruct_tosend.nick_sender,msgstruct.nick_sender);
 				send_msg(client_nick->fd, msgstruct_tosend,msg_tosend);
+				
+				printf("[Client %i] : %s\n", client_nb,buff);
+				printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+
 				return 1;
 			}
 		break;

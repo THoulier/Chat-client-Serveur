@@ -133,7 +133,7 @@ void file_accepted_preparation(char * buff, char * name, int sock_fd, char * fil
 	msgstruct.type = FILE_ACCEPT;
 	strncpy(msgstruct.nick_sender, name, strlen(name));
 	strncpy(msgstruct.infos, file_sender_nickname, strlen(file_sender_nickname));
-	strncpy(msg_tosend, "\0",1);
+	strcpy(msg_tosend, "127.0.0.1:8082");
 	msgstruct.pld_len = strlen(msg_tosend);
 	send_msg_to_server(sock_fd, msgstruct, msg_tosend);
 	
@@ -172,7 +172,8 @@ void echo_client(int sockfd) {
 	struct message msgstruct;
 
 	int file_accepted = 0;
-	
+    int sockfd_client = 0;
+    int port_client = 0;
 	while (1) {
 		
 		memset(buff, 0, MSG_LEN);
@@ -213,14 +214,20 @@ void echo_client(int sockfd) {
 			if(msgstruct.type == MULTICAST_QUIT && strcmp(msgstruct.infos, "Error\0") != 0) {
                 strcpy(channel_name,msgstruct.infos);
 	        }
-            if (msgstruct.type == FILE_REQUEST && strcmp(msgstruct.infos, "Error") != 0) {
+            if (msgstruct.type == FILE_REQUEST && strcmp(msgstruct.infos, "Error\0") != 0) {
 				strcpy(file_sender_nickname,msgstruct.nick_sender);
 				file_accepted = 1;
-				
             }
+			if (msgstruct.type == FILE_ACCEPT && strcmp(msgstruct.infos, "Error\0") != 0){
+				port_client = atoi(strchr(msgstruct.infos, ':') + 1);
+				strtok(msgstruct.infos, ":");
+				printf("%d:%s\n", port_client, msgstruct.infos);
+				//sockfd_client = handle_connect(buff, port_client);
+			}
+
 
 			printf("%s\n", buff);
-			//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 
 		}
 
