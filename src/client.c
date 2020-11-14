@@ -9,18 +9,10 @@
 #include <poll.h>
 
 #include "common.h"
-#include "msg_struct.h"
 #include "liste_chainee.h"
+#include "file_functions.h"
 
-void send_msg_to_server(int sock_fd, struct message msgstruct, char * buffer){
-	if (send(sock_fd, &msgstruct, sizeof(msgstruct), 0) <= 0) {
-		printf("Error while sending a message structure");
-	}
 
-	if (send(sock_fd, buffer, msgstruct.pld_len, 0) <= 0) {
-		printf("Error while sending a message");
-	}
-}
 
 void message_preparation(char * buff, char * name, int sock_fd, char * channel_name){
 	/* prepare the struct msg with the msg before sending */
@@ -124,35 +116,33 @@ void message_preparation(char * buff, char * name, int sock_fd, char * channel_n
 	
 }
 
-void file_accepted_preparation(char * buff, char * name, int sock_fd, char * file_sender_nickname){
-	struct message msgstruct;
-	char msg_tosend[MSG_LEN];
-	memset(msg_tosend, 0, MSG_LEN);
-    memset(&msgstruct, 0, sizeof(struct message));
 
-	msgstruct.type = FILE_ACCEPT;
-	strncpy(msgstruct.nick_sender, name, strlen(name));
-	strncpy(msgstruct.infos, file_sender_nickname, strlen(file_sender_nickname));
-	strcpy(msg_tosend, "127.0.0.1:8082");
-	msgstruct.pld_len = strlen(msg_tosend);
-	send_msg_to_server(sock_fd, msgstruct, msg_tosend);
-	
-}
+int handle_connect(char address_ip[], int portnb) {
 
-void file_rejected_preparation(char * buff, char * name, int sock_fd, char * file_sender_nickname){
-	struct message msgstruct;
-	char msg_tosend[MSG_LEN];
-	memset(msg_tosend, 0, MSG_LEN);
-    memset(&msgstruct, 0, sizeof(struct message));
+	/* Create socket */
+	printf("Creating socket...\n");
+    int server_sock =  socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
 
-	msgstruct.type = FILE_REJECT;
-	strncpy(msgstruct.nick_sender, name, strlen(name));
-	strncpy(msgstruct.infos, file_sender_nickname, strlen(file_sender_nickname));
-	strncpy(msg_tosend, "\0",1);
-	msgstruct.pld_len = strlen(msg_tosend);
-	send_msg_to_server(sock_fd, msgstruct, msg_tosend);
+	/* create server addr */
+	char  * addr_ip = address_ip;
+	short port = portnb;
+	struct sockaddr_in  server_addr;
+	memset(&server_addr, '\0', sizeof(server_addr));
+	server_addr.sin_family= AF_INET;
+	server_addr.sin_port = htons(port);
+	inet_aton(addr_ip,&(server_addr.sin_addr));
+
+    /* connection direct au client */
+	printf("Connecting to client ...");
+    if (connect(server_sock, (struct sockaddr *)&server_addr,sizeof(server_addr)) == -1 ){
+        perror("Error connect");
+        exit(1);
+    }
+	printf("done!\n");
+	return server_sock;
 
 }
+
 
 void echo_client(int sockfd) {
 
@@ -221,8 +211,7 @@ void echo_client(int sockfd) {
 			if (msgstruct.type == FILE_ACCEPT && strcmp(msgstruct.infos, "Error\0") != 0){
 				port_client = atoi(strchr(msgstruct.infos, ':') + 1);
 				strtok(msgstruct.infos, ":");
-				printf("%d:%s\n", port_client, msgstruct.infos);
-				//sockfd_client = handle_connect(buff, port_client);
+				sockfd_client = handle_connect(buff, port_client);
 			}
 
 
@@ -249,6 +238,7 @@ void echo_client(int sockfd) {
 				message_preparation(buff, name, sockfd, channel_name);
 			}
 			//printf("--> Message sent!\n");
+			
 
             if(strcmp(buff, "/quit") == 0 && strcmp(channel_name, "") == 0) {
                 break;
@@ -258,31 +248,7 @@ void echo_client(int sockfd) {
 	}
 }
 
-int handle_connect(char address_ip[], int portnb) {
 
-	/* Create socket */
-	printf("Creating socket...\n");
-    int server_sock =  socket(AF_INET,SOCK_STREAM,IPPROTO_TCP);
-
-	/* create server addr */
-	char  * addr_ip = address_ip;
-	short port = portnb;
-	struct sockaddr_in  server_addr;
-	memset(&server_addr, '\0', sizeof(server_addr));
-	server_addr.sin_family= AF_INET;
-	server_addr.sin_port = htons(port);
-	inet_aton(addr_ip,&(server_addr.sin_addr));
-
-    /* connection au serveur */
-	printf("Connecting to server ...");
-    if (connect(server_sock, (struct sockaddr *)&server_addr,sizeof(server_addr)) == -1 ){
-        perror("Error connect");
-        exit(1);
-    }
-	printf("done!\n");
-	return server_sock;
-
-}
 
 int main(int argc, char * argv[]) {
 	if (argc != 3){
