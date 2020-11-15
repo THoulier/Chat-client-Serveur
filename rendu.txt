@@ -1,0 +1,4 @@
+jalon4
+ongoingSurprise -> Impossible de se deconnecter avec la commande /quit lorsque le client est dans une channel, il doit d'abord quitter la channel.
+                -> Affichage dans les channels à la façon d'une conversation messenger en affichant le message envoyé [Me] et en affichant une personne qui rejoint ou quitte une channel.
+                -> Envoie du fichier par paquet de 1024 bits au lieu d'un paquet de la taille du fichier.
