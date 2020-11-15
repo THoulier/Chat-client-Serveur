@@ -29,17 +29,17 @@ int send_file(char * name, int sock_fd, char * file_name){
     memset(&msgstruct_tosend, 0, sizeof(struct message));
     memset(msg_tosend, 0, MSG_LEN);
 
+    printf("Sending the file...\n");
 
-
+    /* Open the file which will be transfered */
     int fd_in;
     if(-1 == (fd_in = open(file_name, O_RDWR))){
         perror("Error on opening file");
         return 0;
     }
+    /* Send the datas of the files by package of MSG_LEN = 1024 bytes maximum size */
     int ret = -1;
     while(ret != 0){
-        memset(msg_tosend, 0, MSG_LEN);
-        memset(&msgstruct_tosend, 0, sizeof(struct message));
 
         msgstruct_tosend.type = FILE_SEND;
         strcpy(msgstruct_tosend.nick_sender, name);
@@ -51,6 +51,7 @@ int send_file(char * name, int sock_fd, char * file_name){
 
         if(ret == 0)
         break;
+
         msgstruct_tosend.pld_len = ret;
         if(send(sock_fd, &msgstruct_tosend, sizeof(struct message), 0) == -1) {
             perror("Error while sending the file structure message\n");
@@ -60,18 +61,18 @@ int send_file(char * name, int sock_fd, char * file_name){
             perror("Error while sending the file datas");
             return 0;
         }
-        printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct_tosend.pld_len, msgstruct_tosend.nick_sender, msg_type_str[msgstruct_tosend.type], msgstruct_tosend.infos);
-
+        //printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct_tosend.pld_len, msgstruct_tosend.nick_sender, msg_type_str[msgstruct_tosend.type], msgstruct_tosend.infos);
+        memset(msg_tosend, 0, MSG_LEN);
+        memset(&msgstruct_tosend, 0, sizeof(struct message));
     }
-
-	//printf("%s\n", msg_tosend);
 
     memset(&msgstruct_tosend, 0, sizeof(struct message));
     memset(msg_tosend, 0, MSG_LEN);
 
 
-    close(fd_in);
-    printf("l'envoi est terminé\n");
+    close(fd_in); //close file
+    printf("The file has been successfully sent\n");
+
     return 1;
 }
 
@@ -83,20 +84,24 @@ int receive_file(char *name, int sock_fd, char * filename) {
 
     char * filename2 = malloc(sizeof(*filename2));
 
-
     struct sockaddr_in client_addr;
     socklen_t size_addr = sizeof(struct sockaddr_in);
     int client_fd = accept(sock_fd,(struct sockaddr*)&client_addr,&size_addr);
 
+    /* create inbox folder if it does not exist already */
+    /* save the file in the inbox folder */
     strcat(filename2, "./inbox/");
     strcat(filename2, filename);
     printf("file name : %s\n",filename2);
+
+    printf("Receiving the file...\n");
 
     int fd_out;
     if(-1 == (fd_out = open(filename2,O_RDWR|O_CREAT|O_TRUNC, 0666))){
         perror("Error on opening the file\n");
     }
 
+    /* receive the datas of the file from the client */
     int ret = -1;
     while(ret != 0){
 
@@ -111,33 +116,38 @@ int receive_file(char *name, int sock_fd, char * filename) {
             printf("Error while receiving the file datas\n");	
             return 0;	
         }
+
         if(ret == 0)
         break;
 
+        /* writing the datas in the new file */
         int wret = 0;
         if ((wret = write(fd_out, buff, ret)) == -1){
             perror("Error while writing in the file\n");
         }
         
-	    printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+	    //printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 
         memset(buff, 0, MSG_LEN);
         memset(&msgstruct, 0, sizeof(struct message));
-
     }
 
+    printf("The file %s has been saved in ./src/inbox/%s\n", filename, filename);
 
-	//printf("%s\n", buff);
-
+    memset(buff, 0, MSG_LEN);
+    memset(&msgstruct, 0, sizeof(struct message));
+    free(filename2);
     close(fd_out);
     close(sock_fd);
     close(client_fd);
-    printf("la reception est terminé\n");
+    printf("File transfer done!\n");
 
     return 1;
 }
 
-void file_accepted_preparation(char * buff, char * name, int sock_fd, char * file_sender_nickname, char * filename){
+void file_accepted_preparation(char * buff, char * name, int sock_fd, char * file_sender_nickname, char * filename, char address_ip[]){
+    /* if the client answered Y to file request, he send a file accept message 
+    with the port number and ip adress which will be used for the P2P connection */
 	struct message msgstruct;
 	char msg_tosend[MSG_LEN];
 	memset(msg_tosend, 0, MSG_LEN);
@@ -146,17 +156,41 @@ void file_accepted_preparation(char * buff, char * name, int sock_fd, char * fil
 	msgstruct.type = FILE_ACCEPT;
 	strncpy(msgstruct.nick_sender, name, strlen(name));
 	strncpy(msgstruct.infos, file_sender_nickname, strlen(file_sender_nickname));
-	strcpy(msg_tosend, "127.0.0.1:8082");
+	sprintf(msg_tosend, "%s:8082", address_ip);
 	msgstruct.pld_len = strlen(msg_tosend);
-	send_msg_to_server(sock_fd, msgstruct, msg_tosend);
+	send_msg_to_server(sock_fd, msgstruct, msg_tosend); //alert the other client that he is ready to start the connection
 
+    /* Openning a P2P connection by creating a new socket */
 	int fd = peer2peer_connection();
-    receive_file(name, fd, filename);
-    close(fd);
+    receive_file(name, fd, filename);// receiving the file from the client
+    close(fd);//closing P2P connection
+
+	memset(msg_tosend, 0, MSG_LEN);
+    memset(&msgstruct, 0, sizeof(struct message));
+
+    /* Sending ack message */
+    printf("Sending ack message... ");
+    msgstruct.type = FILE_ACK;
+    strcpy(msgstruct.infos,file_sender_nickname);
+    sprintf(msg_tosend,"%s has received the file", name);
+    msgstruct.pld_len = strlen(msg_tosend);
+    strcpy(msgstruct.nick_sender, name);
+
+    if(send(sock_fd, &msgstruct, sizeof(struct message), 0) == -1) {
+        perror("Error while sending the file structure message\n");
+    }
+    if(send(sock_fd, msg_tosend, msgstruct.pld_len, 0) == -1) {
+        perror("Error while sending the file datas");
+    }
+    printf("sent!\n");
+    //printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+
 }
 
 void file_rejected_preparation(char * buff, char * name, int sock_fd, char * file_sender_nickname){
-	struct message msgstruct;
+	/* If the client says N to file request, he alerts the other client 
+    that he cancelled the file transfert */
+    struct message msgstruct;
 	char msg_tosend[MSG_LEN];
 	memset(msg_tosend, 0, MSG_LEN);
     memset(&msgstruct, 0, sizeof(struct message));
@@ -164,9 +198,10 @@ void file_rejected_preparation(char * buff, char * name, int sock_fd, char * fil
 	msgstruct.type = FILE_REJECT;
 	strncpy(msgstruct.nick_sender, name, strlen(name));
 	strncpy(msgstruct.infos, file_sender_nickname, strlen(file_sender_nickname));
-	strncpy(msg_tosend, "\0",1);
+	strcpy(msg_tosend, " ");
 	msgstruct.pld_len = strlen(msg_tosend);
 	send_msg_to_server(sock_fd, msgstruct, msg_tosend);
+    //printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 
 }
 
@@ -175,7 +210,7 @@ int peer2peer_connection(){
 	printf("Creating socket for peer2peer connection...\n");
 	int client_sock = socket(AF_INET, SOCK_STREAM, 0);
 
-	// create server addr
+	// create  addr
 	char  * addr_ip = "127.0.0.1";
 	struct sockaddr_in  client_addr;
 	memset(&client_addr, '\0', sizeof(client_addr));
@@ -183,7 +218,7 @@ int peer2peer_connection(){
 	client_addr.sin_port = htons(8082);
 	inet_aton(addr_ip,&(client_addr.sin_addr));
 		
-	// bind to server addr
+	// bind to  addr
 	printf("Binding...\n");
 	if( bind(client_sock, (struct sockaddr *)&client_addr, sizeof(client_addr)) == -1){
 		perror("Error while binding");

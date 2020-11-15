@@ -26,7 +26,7 @@ struct message {
 	enum msg_type type;
 	char infos[INFOS_LEN];
 };
-
+/*
 static char* msg_type_str[] = {
 	"NICKNAME_NEW",
 	"NICKNAME_LIST",
@@ -45,4 +45,4 @@ static char* msg_type_str[] = {
 	"FILE_SEND",
 	"FILE_ACK"
 };
-
+*/

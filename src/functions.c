@@ -234,7 +234,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				first_client=first_client->next;
 			}
 			printf("[Client %i] : %s\n", client_nb,buff);
-			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+			//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 			return 1;
 		break;
 
@@ -263,7 +263,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				return 1;
 			}
 			printf("[Client %i] : %s\n", client_nb,buff);
-			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+			//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 			
 		break;
 
@@ -348,7 +348,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 						}
 					}
 				}
-				printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+				//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 				return 1;
 			}
         break;
@@ -394,7 +394,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 					msgstruct_tosend.pld_len = strlen(msg_tosend);
 					send_msg(client_fd,msgstruct_tosend,msg_tosend);
 				}
-				printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+				//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 				return 1;
 			}
 		break;
@@ -431,7 +431,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				}
 			}
 			printf("[Client %i] : %s\n", client_nb,buff);
-			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+			//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 			return 1;
 		break;
 
@@ -471,7 +471,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				send_msg(client_nick->fd, msgstruct_tosend,msg_tosend);
 				
 				printf("[Client %i] : %s\n", client_nb,buff);
-				printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+				//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 
 				return 1;
 			}
@@ -492,17 +492,38 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 				msgstruct_tosend.pld_len = strlen(msg_tosend);
 				strcpy(msgstruct_tosend.nick_sender,msgstruct.nick_sender);
 				send_msg(client_nick->fd, msgstruct_tosend,msg_tosend);
+
+				memset(&msgstruct_tosend,0,sizeof(msgstruct_tosend));
+				memset(msg_tosend, 0, MSG_LEN);
+
+				msgstruct_tosend.type = FILE_REJECT;
+				strcpy(msgstruct_tosend.infos,msgstruct.infos);
+				sprintf(msg_tosend,"[Server] : You cancelled file transfert from %s", msgstruct.nick_sender);
+				msgstruct_tosend.pld_len = strlen(msg_tosend);
+				strcpy(msgstruct_tosend.nick_sender,"Server");
+				send_msg(current_client->fd, msgstruct_tosend,msg_tosend);
 				return 1;
 			}
 		break;
 
+		case FILE_ACK:
+			msgstruct_tosend.type = FILE_ACK;
+			strcpy(msgstruct_tosend.infos,msgstruct.infos);
+			strcpy(msg_tosend,buff);
+			msgstruct_tosend.pld_len = strlen(msg_tosend);
+			strcpy(msgstruct_tosend.nick_sender,msgstruct.nick_sender);
+			send_msg(client_nick->fd, msgstruct_tosend,msg_tosend);
+
+			return 1;
+		break;
 		default:
         break;
 	}
 	printf("[Client %i] : %s\n", client_nb,buff);
-	printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+	//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 					
 	send_msg(client_fd,msgstruct_tosend,msg_tosend);
+
 	return 1;
 
 }

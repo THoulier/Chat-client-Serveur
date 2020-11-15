@@ -103,7 +103,6 @@ void message_preparation(char * buff, char * name, int sock_fd, char * channel_n
         msgstruct.pld_len = strlen(msg_tosend);
         strcpy(msgstruct.nick_sender, name);
 		strcpy(file_name, msg_tosend);
-		printf("le nom du fichier est : %s\n", file_name);
     }
 	else {
 		/* if the client does not refer a command, he sends a echo msg */
@@ -145,7 +144,7 @@ int handle_connect(char address_ip[], int portnb) {
 }
 
 
-void echo_client(int sockfd) {
+void echo_client(int sockfd, char address_ip[]) {
 
 	int ret = -1;
 	struct pollfd fds[2];
@@ -182,7 +181,7 @@ void echo_client(int sockfd) {
 
 			// Receiving structure
 			if (recv(sockfd, &msgstruct, sizeof(struct message), 0) <= 0) {
-				printf("Error while receiving a structure message\n");
+				printf("Connection closed by server\n");
 				break;
 			}
 			// Receiving message
@@ -210,27 +209,24 @@ void echo_client(int sockfd) {
             if (msgstruct.type == FILE_REQUEST && strcmp(msgstruct.infos, "Error\0") != 0) {
 				strcpy(file_sender_nickname,msgstruct.nick_sender);
 				strncpy(temp_file_name,strchr(buff, '"')+1, strlen(strchr(buff, '"')+1)-strlen(strrchr(buff, '"')));
-				strcpy(file_name,strrchr(temp_file_name, '/')+1);
-				printf("%s\n",temp_file_name);
-				printf("%s\n",file_name);
-
-				file_accepted = 1;
+				strcpy(file_name,strrchr(temp_file_name, '/')+1); // file name extracted from buff
+				file_accepted = 1; 
             }
 
 			printf("%s\n", buff);
-			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+			//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+			
 			if (msgstruct.type == FILE_ACCEPT && strcmp(msgstruct.infos, "Error\0") != 0){
-				port_client = atoi(strchr(msgstruct.infos, ':') + 1);
-				strtok(msgstruct.infos, ":");
-				sockfd_client = handle_connect(buff, port_client);
-				printf("sock fd client est : %d\n", sockfd_client);
-
+				/* if client receiver say Y to file request, client sender start a connection with him*/
+				port_client = atoi(strchr(msgstruct.infos, ':') + 1); //port number
+				strtok(msgstruct.infos, ":"); //ip adress
+				sockfd_client = handle_connect(buff, port_client); //start connection
 
 				printf("%s\n", buff);
-				printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+				//printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 
-				send_file(name, sockfd_client,file_name);
-				close(sockfd_client);
+				send_file(name, sockfd_client,file_name); //send the file
+				close(sockfd_client); // close connection
 			}
 		}
 
@@ -240,10 +236,13 @@ void echo_client(int sockfd) {
 			buff[strlen(buff) - 1] = 0; //delete \n
 
 			if (file_accepted){
+				//After a file request, the client must answer with Y or N
 				if (strcmp(buff, "Y")== 0 || strcmp(buff, "y")== 0){
-					file_accepted_preparation(buff,name,sockfd,file_sender_nickname,file_name);
+					/* send the file */
+					file_accepted_preparation(buff,name,sockfd,file_sender_nickname,file_name, address_ip);
 				}
 				else {
+					/* cancel file trasnfer */
 					file_rejected_preparation(buff,name,sockfd,file_sender_nickname);
 				}
 				file_accepted = 0;
@@ -272,7 +271,7 @@ int main(int argc, char * argv[]) {
 	int sfd;
 	sfd = handle_connect(argv[1],atoi(argv[2]));
 	printf("[Server] : Please login with /nick <username>\n");
-	echo_client(sfd);
+	echo_client(sfd, argv[1]);
 	close(sfd);
 	return EXIT_SUCCESS;
 }
