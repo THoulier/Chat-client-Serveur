@@ -118,8 +118,8 @@ void echo_server(int server_sock) {
     			}
             }    
         }
-		//display_list(list_client);
-		display_channel_list(channel_list);
+		display_list(list_client);
+		//display_channel_list(channel_list);
 	}
 }
 
@@ -127,7 +127,7 @@ int handle_bind(int portnb) {
 	/* Create socket */
 	printf("Creating socket...\n");
 	int server_sock = socket(AF_INET, SOCK_STREAM, 0);
-
+	printf("server_sock : %d\n", server_sock);
 	// create server addr
 	char  * addr_ip = "127.0.0.1";
 	short port = portnb;

@@ -14,7 +14,7 @@
 
 
 
-void message_preparation(char * buff, char * name, int sock_fd, char * channel_name){
+void message_preparation(char * buff, char * name, int sock_fd, char * channel_name, char * file_name){
 	/* prepare the struct msg with the msg before sending */
 	struct message msgstruct;
 	char msg_tosend[MSG_LEN];
@@ -100,9 +100,10 @@ void message_preparation(char * buff, char * name, int sock_fd, char * channel_n
         strcpy(temporary_msg, strchr(buff, ' ') + 1); 
         strcpy(msg_tosend, strchr(temporary_msg, ' ') + 1); //keep only the file name
 		strncpy(msgstruct.infos, temporary_msg, strlen(temporary_msg)-strlen(msg_tosend)-1); //keep only the nickname
-		printf("%s %d\n",msg_tosend,strlen(msg_tosend));
         msgstruct.pld_len = strlen(msg_tosend);
         strcpy(msgstruct.nick_sender, name);
+		strcpy(file_name, msg_tosend);
+		printf("le nom du fichier est : %s\n", file_name);
     }
 	else {
 		/* if the client does not refer a command, he sends a echo msg */
@@ -157,6 +158,7 @@ void echo_client(int sockfd) {
 	char * name = malloc(sizeof(*name));
 	char * channel_name = malloc(sizeof(*channel_name));
     char * file_sender_nickname = malloc(sizeof(*file_sender_nickname));
+	char * file_name = malloc(sizeof(*file_name));
 
 	char buff[MSG_LEN];
 	struct message msgstruct;
@@ -212,6 +214,9 @@ void echo_client(int sockfd) {
 				port_client = atoi(strchr(msgstruct.infos, ':') + 1);
 				strtok(msgstruct.infos, ":");
 				sockfd_client = handle_connect(buff, port_client);
+				printf("sock fd client est : %d\n", sockfd_client);
+				send_file(name, sockfd_client,file_name);
+				close(sockfd_client);
 			}
 
 
@@ -235,7 +240,7 @@ void echo_client(int sockfd) {
 				file_accepted = 0;
 			}
 			else{
-				message_preparation(buff, name, sockfd, channel_name);
+				message_preparation(buff, name, sockfd, channel_name, file_name);
 			}
 			//printf("--> Message sent!\n");
 			
