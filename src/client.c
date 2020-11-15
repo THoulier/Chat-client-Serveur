@@ -159,6 +159,7 @@ void echo_client(int sockfd) {
 	char * channel_name = malloc(sizeof(*channel_name));
     char * file_sender_nickname = malloc(sizeof(*file_sender_nickname));
 	char * file_name = malloc(sizeof(*file_name));
+	char * temp_file_name = malloc(sizeof(*temp_file_name));
 
 	char buff[MSG_LEN];
 	struct message msgstruct;
@@ -208,21 +209,29 @@ void echo_client(int sockfd) {
 	        }
             if (msgstruct.type == FILE_REQUEST && strcmp(msgstruct.infos, "Error\0") != 0) {
 				strcpy(file_sender_nickname,msgstruct.nick_sender);
+				strncpy(temp_file_name,strchr(buff, '"')+1, strlen(strchr(buff, '"')+1)-strlen(strrchr(buff, '"')));
+				strcpy(file_name,strrchr(temp_file_name, '/')+1);
+				printf("%s\n",temp_file_name);
+				printf("%s\n",file_name);
+
 				file_accepted = 1;
             }
+
+			printf("%s\n", buff);
+			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
 			if (msgstruct.type == FILE_ACCEPT && strcmp(msgstruct.infos, "Error\0") != 0){
 				port_client = atoi(strchr(msgstruct.infos, ':') + 1);
 				strtok(msgstruct.infos, ":");
 				sockfd_client = handle_connect(buff, port_client);
 				printf("sock fd client est : %d\n", sockfd_client);
+
+
+				printf("%s\n", buff);
+				printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
+
 				send_file(name, sockfd_client,file_name);
 				close(sockfd_client);
 			}
-
-
-			printf("%s\n", buff);
-			printf("pld_len: %i / nick_sender: %s / type: %s / infos: %s\n", msgstruct.pld_len, msgstruct.nick_sender, msg_type_str[msgstruct.type], msgstruct.infos);
-
 		}
 
 		if (fds[1].revents & POLLIN){
@@ -232,7 +241,7 @@ void echo_client(int sockfd) {
 
 			if (file_accepted){
 				if (strcmp(buff, "Y")== 0 || strcmp(buff, "y")== 0){
-					file_accepted_preparation(buff,name,sockfd,file_sender_nickname);
+					file_accepted_preparation(buff,name,sockfd,file_sender_nickname,file_name);
 				}
 				else {
 					file_rejected_preparation(buff,name,sockfd,file_sender_nickname);

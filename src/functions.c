@@ -446,7 +446,7 @@ int treating_messages(struct message msgstruct, char * buff, int client_fd, int 
 			else {
 				msgstruct_tosend.type = FILE_REQUEST;
 				strcpy(msgstruct_tosend.infos,msgstruct.infos);
-				sprintf(msg_tosend,"[Server] : %s wants you to accept the transfer of the file named '%s'. Do you accept? [Y/N]", msgstruct.nick_sender, buff);
+				sprintf(msg_tosend,"[Server] : %s wants you to accept the transfer of the file named \"%s\". Do you accept? [Y/N]", msgstruct.nick_sender, buff);
 				msgstruct_tosend.pld_len = strlen(msg_tosend);
 				strcpy(msgstruct_tosend.nick_sender,msgstruct.nick_sender);
 				send_msg(client_nick->fd, msgstruct_tosend,msg_tosend);
