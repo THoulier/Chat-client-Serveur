@@ -1,5 +1,11 @@
 # Client/Server Chat
 
+A local chat application using a multitask TCP server. 
+The main features implemented are :
+- private/public messages
+- file transfert
+- channel
+
 Installation
 ------------
 To install the application, you have to clone the repo and compile the files :
