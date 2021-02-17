@@ -105,6 +105,14 @@ To see personnal informations on a specific user :
 /whois  User1
 [Server] : User1 connected since 2014/09/29@19:23 with IP address 192.168.3.165 and port number 52322
 ```
+To see the list of current channels :
+```
+/channel_list
+[Server] : Online channels are :
+                          - Best_channel
+                          - channel_2
+                          - test_channel
 
-Screenshots
-------------
+```
+
+
